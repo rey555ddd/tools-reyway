@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>笙闆的 AI 工具箱</title>
-<meta name="description" content="笙闆的AI工具箱——歡迎親看好友自由取用">
+<meta name="description" content="笙闆的AI工具箱——歡迎親朋好友自由取用">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -20,6 +20,8 @@
   --gold-dim:rgba(184,150,62,0.08);
   --green:#3a9a6e;
   --green-dim:rgba(58,154,110,0.08);
+  --violet:#7c5cbf;
+  --violet-dim:rgba(124,92,191,0.08);
   --text:#1a2030;
   --text-muted:rgba(26,32,48,0.5);
   --text-dim:rgba(26,32,48,0.3);
@@ -97,6 +99,7 @@ body{
 .icon-blue{background:var(--primary-dim);border:1px solid rgba(74,143,212,0.15);color:var(--primary)}
 .icon-green{background:var(--green-dim);border:1px solid rgba(58,154,110,0.15);color:var(--green)}
 .icon-gold{background:var(--gold-dim);border:1px solid rgba(184,150,62,0.15);color:var(--gold)}
+.icon-violet{background:var(--violet-dim);border:1px solid rgba(124,92,191,0.15);color:var(--violet)}
 
 .tool-card-body{flex:1}
 .tool-card-body h2{
@@ -137,7 +140,7 @@ footer p{font-size:0.7rem;color:var(--text-dim);letter-spacing:1px}
 <div class="container">
   <header class="header">
     <h1><span>笙闆的 AI 工具箱</span></h1>
-    <p>歡迎親看好友自由取用，有任何功能需求也可以留言給我。</p>
+    <p>歡迎親朋好友自由取用，有任何功能需求也可以留言給我。</p>
   </header>
 
   <div class="tool-grid">
@@ -154,7 +157,16 @@ footer p{font-size:0.7rem;color:var(--text-dim);letter-spacing:1px}
       <div class="tool-card-icon icon-green">換</div>
       <div class="tool-card-body">
         <h2>單位換算器</h2>
-        <p>拍照自動辨識美國超市標僼，換算成台幣、台斤，一目了然。</p>
+        <p>拍照自動辨識美國超市標價，換算成台幣、台斤，一目了然。</p>
+      </div>
+      <span class="tool-card-arrow">&#8250;</span>
+    </a>
+
+    <a class="tool-card" href="bg-generator.html">
+      <div class="tool-card-icon icon-violet">背</div>
+      <div class="tool-card-body">
+        <h2>去背商品情境生成器</h2>
+        <p>上傳商品照，AI 自動去背並合成精品級或天然風情境美圖。</p>
       </div>
       <span class="tool-card-arrow">&#8250;</span>
     </a>
