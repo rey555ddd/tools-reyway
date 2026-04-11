@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>單位換算器 — 笙闆的AI工具箱</title>
+<meta name="description" content="拍照辨識美國超市標價，自動換算台幣、台斤，一目了然">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#fafbfd;
+  --surface:#ffffff;
+  --border:rgba(0,0,0,0.08);
+  --border-hover:rgba(0,0,0,0.15);
+  --primary:#3a9a6e;
+  --primary-hover:#2e8a5e;
+  --primary-dim:rgba(58,154,110,0.08);
+  --gold:#b8963e;
+  --gold-dim:rgba(184,150,62,0.08);
+  --blue:#4a8fd4;
+  --blue-dim:rgba(74,143,212,0.08);
+  --text:#1a2030;
+  --text-muted:rgba(26,32,48,0.5);
+  --text-dim:rgba(26,32,48,0.3);
+  --radius:16px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter','Noto Sans TC',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+}
+::selection{background:rgba(58,154,110,0.15)}
+
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(120px);will-change:transform}
+.orb-1{width:45vw;height:45vw;top:-15%;left:-10%;background:radial-gradient(circle,rgba(58,154,110,0.04),transparent 65%);animation:d1 28s ease-in-out infinite}
+.orb-2{width:35vw;height:35vw;bottom:-10%;right:-8%;background:radial-gradient(circle,rgba(184,150,62,0.03),transparent 65%);animation:d2 22s ease-in-out infinite}
+@keyframes d1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,20px)}}
+@keyframes d2{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,-30px)}}
+
+.container{max-width:680px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+
+.back-link{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:10px 0 0;font-size:0.8rem;
+  color:var(--text-muted);text-decoration:none;
+  transition:color 0.2s;
+}
+.back-link:hover{color:var(--primary)}
+
+.header{padding:20px 0 28px;text-align:center}
+.header h1{
+  font-size:1.5rem;font-weight:700;
+  font-family:'Noto Sans TC',sans-serif;
+  color:var(--text);letter-spacing:1px;
+  margin-bottom:6px;
+}
+.header h1 span{
+  background:linear-gradient(135deg,var(--primary),var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.header p{
+  font-size:0.82rem;color:var(--text-muted);
+  line-height:1.7;font-weight:300;
+}
+
+/* ===== Mode Selector ===== */
+.modes{
+  display:flex;gap:8px;justify-content:center;
+  margin-bottom:24px;flex-wrap:wrap;
+}
+.mode-btn{
+  padding:10px 24px;border-radius:100px;
+  font-size:0.82rem;font-weight:500;
+  font-family:'Noto Sans TC',sans-serif;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text-muted);cursor:pointer;
+  transition:all 0.3s var(--ease);
+  letter-spacing:0.3px;user-select:none;
+}
+.mode-btn:hover{border-color:var(--border-hover);color:var(--text)}
+.mode-btn.active{
+  background:var(--primary-dim);
+  border-color:rgba(58,154,110,0.3);
+  color:var(--primary);font-weight:600;
+}
+
+/* ===== Main Card ===== */
+.main-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:28px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.03);
+  margin-bottom:16px;
+}
+
+/* ===== Photo Mode ===== */
+.photo-panel{}
+.upload-zone{
+  border:2px dashed var(--border);
+  border-radius:14px;
+  padding:48px 20px;
+  text-align:center;
+  cursor:pointer;
+  transition:all 0.3s var(--ease);
+  position:relative;
+  overflow:hidden;
+}
+.upload-zone:hover{border-color:rgba(58,154,110,0.4);background:var(--primary-dim)}
+.upload-zone.dragover{border-color:var(--primary);background:rgba(58,154,110,0.06)}
+.upload-icon{
+  width:56px;height:56px;margin:0 auto 12px;
+  border-radius:14px;
+  background:var(--primary-dim);
+  border:1px solid rgba(58,154,110,0.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.5rem;
+}
+.upload-text{font-size:0.85rem;color:var(--text-muted);line-height:1.7;font-weight:300}
+.upload-text strong{font-weight:500;color:var(--primary)}
+.upload-hint{font-size:0.72rem;color:var(--text-dim);margin-top:6px}
+.upload-zone input{display:none}
+
+.preview-area{display:none;margin-top:16px}
+.preview-area.visible{display:block}
+.preview-wrap{position:relative;display:inline-block;max-width:100%}
+.preview-img{max-width:100%;max-height:300px;border-radius:12px;display:block}
+.preview-remove{
+  position:absolute;top:8px;right:8px;
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(0,0,0,0.5);border:none;
+  color:#fff;font-size:1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background 0.2s;
+}
+.preview-remove:hover{background:rgba(0,0,0,0.7)}
+
+.action-row{margin-top:20px;text-align:center}
+.btn-go{
+  padding:14px 48px;border-radius:100px;
+  font-size:0.95rem;font-weight:600;
+  font-family:'Noto Sans TC',sans-serif;
+  background:linear-gradient(135deg,var(--primary),var(--primary-hover));
+  color:#fff;border:none;cursor:pointer;
+  transition:all 0.3s var(--ease);
+  letter-spacing:1px;
+  box-shadow:0 4px 16px rgba(58,154,110,0.2);
+}
+.btn-go:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(58,154,110,0.3)}
+.btn-go:active{transform:translateY(0)}
+.btn-go:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-go .spinner{
+  display:none;width:18px;height:18px;
+  border:2px solid rgba(255,255,255,0.3);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin 0.7s linear infinite;
+  margin-right:8px;vertical-align:middle;
+}
+.btn-go.loading .spinner{display:inline-block}
+.btn-go.loading .btn-text{opacity:0.7}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== Manual Mode ===== */
+.manual-panel{display:none}
+.manual-panel.visible{display:block}
+
+.form-group{margin-bottom:18px}
+.form-label{
+  font-size:0.75rem;color:var(--text-dim);
+  letter-spacing:1px;text-transform:uppercase;
+  margin-bottom:8px;display:block;font-weight:500;
+}
+.form-row{display:flex;gap:10px;align-items:center}
+.form-input{
+  flex:1;padding:12px 16px;border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--bg);color:var(--text);
+  font-size:1.1rem;font-weight:500;
+  font-family:'Inter','Noto Sans TC',sans-serif;
+  outline:none;transition:border-color 0.3s;
+  -moz-appearance:textfield;
+}
+.form-input::-webkit-outer-spin-button,
+.form-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.form-input:focus{border-color:rgba(58,154,110,0.4)}
+.form-select{
+  padding:12px 16px;border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--surface);color:var(--text);
+  font-size:0.85rem;font-weight:500;
+  font-family:'Noto Sans TC',sans-serif;
+  outline:none;cursor:pointer;
+  transition:border-color 0.3s;
+  min-width:100px;
+}
+.form-select:focus{border-color:rgba(58,154,110,0.4)}
+.form-currency{
+  font-size:0.85rem;font-weight:600;
+  color:var(--text-muted);white-space:nowrap;
+}
+
+.rate-row{
+  display:flex;align-items:center;gap:8px;
+  margin-top:6px;
+}
+.rate-label{font-size:0.72rem;color:var(--text-dim)}
+.rate-input{
+  width:64px;padding:4px 8px;border-radius:8px;
+  border:1px solid var(--border);background:var(--bg);
+  color:var(--text);font-size:0.78rem;font-weight:500;
+  font-family:'Inter',sans-serif;outline:none;
+  text-align:center;
+}
+.rate-input:focus{border-color:rgba(58,154,110,0.4)}
+
+/* ===== Result ===== */
+.result-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:28px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.03);
+  margin-bottom:24px;
+  display:none;
+  animation:fadeUp 0.4s var(--ease);
+}
+.result-card.visible{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.result-title{
+  font-size:0.75rem;color:var(--text-dim);
+  letter-spacing:1px;text-transform:uppercase;
+  font-weight:500;margin-bottom:16px;
+}
+.result-grid{display:flex;flex-direction:column;gap:12px}
+.result-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;
+  border-radius:12px;
+  background:var(--bg);
+  border:1px solid var(--border);
+}
+.result-item.highlight{
+  background:var(--primary-dim);
+  border-color:rgba(58,154,110,0.2);
+}
+.result-item-label{font-size:0.8rem;color:var(--text-muted);font-weight:400}
+.result-item-value{
+  font-size:1.1rem;font-weight:700;
+  font-family:'Inter','Noto Sans TC',sans-serif;
+  color:var(--text);
+}
+.result-item.highlight .result-item-value{color:var(--primary)}
+.result-item-sub{font-size:0.72rem;color:var(--text-dim);margin-top:2px}
+.result-product{
+  font-size:0.95rem;font-weight:600;
+  font-family:'Noto Sans TC',sans-serif;
+  color:var(--text);margin-bottom:14px;
+  padding-bottom:12px;border-bottom:1px solid var(--border);
+}
+
+.result-note{
+  font-size:0.72rem;color:var(--text-dim);
+  margin-top:14px;text-align:center;line-height:1.6;
+}
+
+footer{text-align:center;padding:32px 0}
+footer p{font-size:0.7rem;color:var(--text-dim);letter-spacing:1px}
+
+@media(max-width:640px){
+  .container{padding:0 16px}
+  .header{padding:16px 0 20px}
+  .header h1{font-size:1.3rem}
+  .main-card,.result-card{padding:20px}
+  .modes{gap:6px}
+  .mode-btn{padding:8px 16px;font-size:0.78rem}
+  .upload-zone{padding:36px 16px}
+  .btn-go{padding:12px 36px;font-size:0.9rem}
+  .form-row{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<div class="ambient">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+</div>
+
+<div class="container">
+  <a class="back-link" href="index.html">&#8249; 回到工具箱</a>
+
+  <header class="header">
+    <h1><span>單位換算器</span></h1>
+    <p>拍照辨識美國超市標價，自動換算台幣、台斤，買東西不用再算半天。</p>
+  </header>
+
+  <div class="modes">
+    <button class="mode-btn active" data-mode="photo" onclick="switchMode('photo')">拍照辨識</button>
+    <button class="mode-btn" data-mode="manual" onclick="switchMode('manual')">手動換算</button>
+  </div>
+
+  <div class="main-card">
+    <!-- Photo Mode -->
+    <div class="photo-panel" id="photoPanel">
+      <div class="upload-zone" id="uploadZone" onclick="triggerUpload()">
+        <div class="upload-icon">&#128247;</div>
+        <div class="upload-text">
+          <strong>拍照</strong>或<strong>上傳</strong>美國超市標價
+        </div>
+        <div class="upload-hint">支援 JPG、PNG，拍越清楚辨識越準</div>
+        <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleFile(event)">
+      </div>
+
+      <div class="preview-area" id="previewArea">
+        <div class="preview-wrap">
+          <img class="preview-img" id="previewImg">
+          <button class="preview-remove" onclick="removePreview()" title="移除照片">&times;</button>
+        </div>
+      </div>
+
+      <div class="action-row" id="photoAction" style="display:none">
+        <button class="btn-go" id="btnAnalyze" onclick="analyzePhoto()">
+          <span class="spinner"></span>
+          <span class="btn-text">辨識換算</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Manual Mode -->
+    <div class="manual-panel" id="manualPanel">
+      <div class="form-group">
+        <label class="form-label">商品價格</label>
+        <div class="form-row">
+          <span class="form-currency">US$</span>
+          <input type="number" class="form-input" id="priceInput" placeholder="0.00" step="0.01" min="0" oninput="calcManual()">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">計價單位</label>
+        <div class="form-row">
+          <select class="form-select" id="unitSelect" onchange="calcManual()">
+            <option value="per_lb">每磅 (per lb)</option>
+            <option value="per_oz">每盎司 (per oz)</option>
+            <option value="per_kg">每公斤 (per kg)</option>
+            <option value="per_100g">每 100g</option>
+            <option value="each">每個 (each)</option>
+            <option value="per_gallon">每加侖 (per gal)</option>
+            <option value="per_qt">每夸脫 (per qt)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">匯率</label>
+        <div class="rate-row">
+          <span class="rate-label">1 USD =</span>
+          <input type="number" class="rate-input" id="rateInput" value="32.5" step="0.1" min="1" oninput="calcManual()">
+          <span class="rate-label">TWD</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="result-card" id="resultCard">
+    <div class="result-title" id="resultTitle">換算結果</div>
+    <div class="result-product" id="resultProduct" style="display:none"></div>
+    <div class="result-grid" id="resultGrid"></div>
+    <div class="result-note" id="resultNote"></div>
+  </div>
+
+  <footer>
+    <p>笙闆的 AI 工具箱 &middot; Powered by REYWAY</p>
+  </footer>
+</div>
+
+<script>
+let currentPanel = 'photo';
+let uploadedBase64 = null;
+let uploadedMime = null;
+
+function switchMode(mode) {
+  currentPanel = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
+  document.getElementById('photoPanel').style.display = mode === 'photo' ? '' : 'none';
+  document.getElementById('manualPanel').classList.toggle('visible', mode === 'manual');
+  document.getElementById('resultCard').classList.remove('visible');
+  if (mode === 'manual') calcManual();
+}
+
+/* ===== Photo Mode ===== */
+function triggerUpload() {
+  document.getElementById('fileInput').click();
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  uploadedMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const dataUrl = ev.target.result;
+    uploadedBase64 = dataUrl.split(',')[1];
+    document.getElementById('previewImg').src = dataUrl;
+    document.getElementById('previewArea').classList.add('visible');
+    document.getElementById('uploadZone').style.display = 'none';
+    document.getElementById('photoAction').style.display = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePreview() {
+  uploadedBase64 = null;
+  uploadedMime = null;
+  document.getElementById('previewArea').classList.remove('visible');
+  document.getElementById('uploadZone').style.display = '';
+  document.getElementById('photoAction').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('resultCard').classList.remove('visible');
+}
+
+// Drag and drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const dt = new DataTransfer(); dt.items.add(file);
+    document.getElementById('fileInput').files = dt.files;
+    handleFile({ target: { files: [file] } });
+  }
+});
+
+async function analyzePhoto() {
+  if (!uploadedBase64) return;
+  const btn = document.getElementById('btnAnalyze');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    const result = await callConverterAPI(uploadedBase64, uploadedMime);
+    renderPhotoResult(result);
+  } catch(e) {
+    renderError('辨識失敗，請確認照片清晰度後再試一次。');
+  }
+  btn.classList.remove('loading'); btn.disabled = false;
+}
+
+async function callConverterAPI(base64, mime) {
+  const host = window.location.hostname;
+  if (host === 'tools.reyway.com') {
+    const r = await fetch('/api/converter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64, mimeType: mime })
+    });
+    if (!r.ok) throw new Error('API error');
+    return await r.json();
+  }
+  // Demo mode
+  await new Promise(r => setTimeout(r, 1500));
+  return {
+    demo: true,
+    product: 'Organic Blueberries (Demo)',
+    originalPrice: 4.99,
+    unit: 'per_lb',
+    rate: 32.5,
+    items: [
+      { label: '美元價格', value: 'US$ 4.99 / lb', highlight: false },
+      { label: '台幣價格', value: 'NT$ 162', highlight: true },
+      { label: '每台斤 (600g)', value: 'NT$ 214', highlight: true },
+      { label: '每 100g', value: 'NT$ 35.7', highlight: false },
+      { label: '每公斤', value: 'NT$ 357', highlight: false },
+    ]
+  };
+}
+
+function renderPhotoResult(data) {
+  const grid = document.getElementById('resultGrid');
+  const productEl = document.getElementById('resultProduct');
+  const noteEl = document.getElementById('resultNote');
+
+  if (data.product) {
+    productEl.textContent = data.product;
+    productEl.style.display = '';
+  } else {
+    productEl.style.display = 'none';
+  }
+
+  grid.innerHTML = '';
+  (data.items || []).forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'result-item' + (item.highlight ? ' highlight' : '');
+    div.innerHTML = `
+      <span class="result-item-label">${item.label}</span>
+      <span class="result-item-value">${item.value}</span>
+    `;
+    grid.appendChild(div);
+  });
+
+  noteEl.textContent = data.demo
+    ? '目前為 Demo 模式，串接 API 後可辨識真實標價'
+    : `匯率：1 USD = ${data.rate} TWD`;
+
+  document.getElementById('resultCard').classList.add('visible');
+}
+
+function renderError(msg) {
+  const grid = document.getElementById('resultGrid');
+  document.getElementById('resultProduct').style.display = 'none';
+  grid.innerHTML = `<div class="result-item"><span class="result-item-label">${msg}</span></div>`;
+  document.getElementById('resultNote').textContent = '';
+  document.getElementById('resultCard').classList.add('visible');
+}
+
+/* ===== Manual Mode ===== */
+const CONVERSIONS = {
+  // unit → grams per unit
+  per_lb: 453.592,
+  per_oz: 28.3495,
+  per_kg: 1000,
+  per_100g: 100,
+  // volume (mL)
+  per_gallon: 3785.41,
+  per_qt: 946.353,
+};
+
+function calcManual() {
+  const price = parseFloat(document.getElementById('priceInput').value);
+  const unit = document.getElementById('unitSelect').value;
+  const rate = parseFloat(document.getElementById('rateInput').value) || 32.5;
+
+  if (!price || price <= 0) {
+    document.getElementById('resultCard').classList.remove('visible');
+    return;
+  }
+
+  const twdPrice = price * rate;
+  const items = [];
+
+  items.push({ label: '台幣價格', value: `NT$ ${twdPrice.toFixed(1)}`, highlight: true });
+
+  if (unit === 'each') {
+    // nothing extra to convert
+  } else if (unit === 'per_gallon' || unit === 'per_qt') {
+    const ml = CONVERSIONS[unit];
+    const twdPerL = (twdPrice / ml) * 1000;
+    items.push({ label: '每公升', value: `NT$ ${twdPerL.toFixed(1)}`, highlight: false });
+    items.push({ label: '每 100mL', value: `NT$ ${(twdPerL / 10).toFixed(1)}`, highlight: false });
+  } else {
+    const grams = CONVERSIONS[unit];
+    const twdPerG = twdPrice / grams;
+    const twdPerJin = twdPerG * 600;
+    const twdPer100g = twdPerG * 100;
+    const twdPerKg = twdPerG * 1000;
+
+    items.push({ label: '每台斤 (600g)', value: `NT$ ${twdPerJin.toFixed(1)}`, highlight: true });
+    items.push({ label: '每 100g', value: `NT$ ${twdPer100g.toFixed(1)}`, highlight: false });
+    items.push({ label: '每公斤', value: `NT$ ${twdPerKg.toFixed(1)}`, highlight: false });
+
+    if (unit !== 'per_lb') {
+      const usdPerLb = price * (453.592 / grams);
+      items.push({ label: '換算每磅 (USD)', value: `US$ ${usdPerLb.toFixed(2)}`, highlight: false });
+    }
+  }
+
+  const unitNames = {
+    per_lb: '每磅 (lb)', per_oz: '每盎司 (oz)', per_kg: '每公斤',
+    per_100g: '每 100g', each: '每個', per_gallon: '每加侖', per_qt: '每夸脫'
+  };
+
+  const grid = document.getElementById('resultGrid');
+  const productEl = document.getElementById('resultProduct');
+  productEl.textContent = `US$ ${price.toFixed(2)} ${unitNames[unit]}`;
+  productEl.style.display = '';
+
+  grid.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'result-item' + (item.highlight ? ' highlight' : '');
+    div.innerHTML = `
+      <span class="result-item-label">${item.label}</span>
+      <span class="result-item-value">${item.value}</span>
+    `;
+    grid.appendChild(div);
+  });
+
+  document.getElementById('resultNote').textContent = `匯率：1 USD = ${rate} TWD`;
+  document.getElementById('resultCard').classList.add('visible');
+}
+</script>
+
+</body>
+</html>
