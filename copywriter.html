@@ -226,15 +226,15 @@ footer p{font-size:0.7rem;color:var(--text-dim);letter-spacing:1px}
   </header>
 
   <div class="modes">
-    <button class="mode-btn active" data-mode="deai" onclick="setMode('deai')">去 AI 味</button>
+    <button class="mode-btn active" data-mode="gen" onclick="setMode('gen')">文案生成</button>
     <button class="mode-btn" data-mode="tone" onclick="setMode('tone')">語氣改寫</button>
-    <button class="mode-btn" data-mode="slim" onclick="setMode('slim')">文案精簥</button>
-    <button class="mode-btn" data-mode="gen" onclick="setMode('gen')">文案生成</button>
+    <button class="mode-btn" data-mode="slim" onclick="setMode('slim')">文案精簡</button>
+    <button class="mode-btn" data-mode="deai" onclick="setMode('deai')">去 AI 味</button>
   </div>
 
   <div class="main-card">
-    <label class="input-label" id="inputLabel">貼上要優化的文案</label>
-    <textarea class="input-area" id="inputText" placeholder="把文字貼在這裡就好囉..." oninput="updateCount()"></textarea>
+    <label class="input-label" id="inputLabel">描述你想要的文案主題</label>
+    <textarea class="input-area" id="inputText" placeholder="例如：幫我寫一段母親節感謝媽媽的話，大概 100 字左右..." oninput="updateCount()"></textarea>
 
     <div class="tone-row" id="toneRow">
       <button class="tone-chip active" data-tone="warm" onclick="setTone(this)">溫暖親切</button>
@@ -248,7 +248,7 @@ footer p{font-size:0.7rem;color:var(--text-dim);letter-spacing:1px}
     <div class="action-row">
       <button class="btn-go" id="btnGo" onclick="doProcess()">
         <span class="spinner"></span>
-        <span class="btn-text">一鍵優化</span>
+        <span class="btn-text">生成文案</span>
       </button>
     </div>
   </div>
@@ -267,7 +267,7 @@ footer p{font-size:0.7rem;color:var(--text-dim);letter-spacing:1px}
 </div>
 
 <script>
-let currentMode = 'deai';
+let currentMode = 'gen';
 let currentTone = 'warm';
 
 const modeConfig = {
@@ -323,14 +323,14 @@ async function callAPI(mode, text, tone) {
   let systemPrompt = '';
   switch(mode) {
     case 'deai':
-      systemPrompt = `你是一位資深文案編輯。請將以下文字去除「AI 味」，讓它謀起來更像真人寫的。\n規則：\n1. 移除過於工整的排比句和對仗\n2. 減少「此外」「總之」「值得一提的是」等 AI 常用連接詞\n3. 加入口語化的轉折和節奏感\n4. 保留原文的核心意思，不要加油添醋\n5. 不要使用 emoji\n6. 語氣自然就好\n只輸出修改後的文案，不要加任何說明。`;
+      systemPrompt = `你是一位資深文案編輯。請將以下文字去除「AI 味」，讓它讀起來更像真人寫的。\n規則：\n1. 移除過於工整的排比句和對仗\n2. 減少「此外」「總之」「值得一提的是」等 AI 常用連接詞\n3. 加入口語化的轉折和節奏感\n4. 保留原文的核心意思，不要加油添醋\n5. 不要使用 emoji\n6. 語氣自然就好\n只輸出修改後的文案，不要加任何說明。`;
       break;
     case 'tone':
-      const ti = { warm:'語氣溫暖、親切、像跟好朋友說誡。', formal:'語氣正式、專業、有條理。', humor:'語氣輕鬆幽默，帶趣味。', literary:'語氣有質感、有畫面感，用字精煉。' };
+      const ti = { warm:'語氣溫暖、親切、像跟好朋友說話。', formal:'語氣正式、專業、有條理。', humor:'語氣輕鬆幽默，帶趣味。', literary:'語氣有質感、有畫面感，用字精煉。' };
       systemPrompt = `你是一位資深文案編輯。請將以下文字改寫成指定語氣。\n目標語氣：${ti[tone]}\n規則：保留核心意思，不加油添醋，不用 emoji。\n只輸出修改後的文案。`;
       break;
     case 'slim':
-      systemPrompt = `你是一位資深文案編輯。請將以下文字精簡濃縮，字數減少 30-50%，保留核心資訊，不用 emoji。\n只輸出精簡後的文案。`;
+      systemPrompt = `你是一位資深文案編輯。請將以下文字精簡濃縮，字數減少 30-50%，保留核心資訊，不用 emoji。\n只輸出精簠後的文案。`;
       break;
     case 'gen':
       systemPrompt = `你是一位資深文案寫手。請根據描述撰寫一段完整文案。文案要有溫度有節奏，不用 AI 味排比句，口語化但有質感，不用 emoji。\n只輸出文案本身。`;
