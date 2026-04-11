@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>去背商品情境生成器 — 笙闆的AI工具箱</title>
+<meta name="description" content="上傳商品照片，AI 自動去背並生成精美情境圖">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#fafbfd;
+  --surface:#ffffff;
+  --border:rgba(0,0,0,0.08);
+  --border-hover:rgba(0,0,0,0.15);
+  --primary:#7c5cbf;
+  --primary-hover:#6b4aad;
+  --primary-dim:rgba(124,92,191,0.08);
+  --text:#1a2030;
+  --text-muted:rgba(26,32,48,0.5);
+  --text-dim:rgba(26,32,48,0.3);
+  --radius:16px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter','Noto Sans TC',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+}
+::selection{background:rgba(124,92,191,0.15)}
+
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(120px);will-change:transform}
+.orb-1{width:45vw;height:45vw;top:-15%;left:-10%;background:radial-gradient(circle,rgba(124,92,191,0.04),transparent 65%);animation:d1 28s ease-in-out infinite}
+.orb-2{width:35vw;height:35vw;bottom:-10%;right:-8%;background:radial-gradient(circle,rgba(184,150,62,0.03),transparent 65%);animation:d2 22s ease-in-out infinite}
+@keyframes d1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,20px)}}
+@keyframes d2{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,-30px)}}
+
+.container{max-width:680px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+
+.back-link{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:10px 0 0;font-size:0.8rem;
+  color:var(--text-muted);text-decoration:none;
+  transition:color 0.2s;
+}
+.back-link:hover{color:var(--primary)}
+
+.header{padding:20px 0 28px;text-align:center}
+.header h1{
+  font-size:1.5rem;font-weight:700;
+  font-family:'Noto Sans TC',sans-serif;
+  color:var(--text);letter-spacing:1px;
+  margin-bottom:6px;
+}
+.header p{
+  font-size:0.82rem;color:var(--text-muted);
+  line-height:1.7;font-weight:300;
+}
+
+/* ===== Main Card ===== */
+.main-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:28px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.03);
+  margin-bottom:16px;
+}
+
+/* ===== Upload Zone ===== */
+.upload-zone{
+  border:2px dashed var(--border);
+  border-radius:14px;
+  padding:48px 20px;
+  text-align:center;
+  cursor:pointer;
+  transition:all 0.3s var(--ease);
+  position:relative;
+  overflow:hidden;
+}
+.upload-zone:hover{border-color:rgba(124,92,191,0.4);background:var(--primary-dim)}
+.upload-zone.dragover{border-color:var(--primary);background:rgba(124,92,191,0.06)}
+.upload-icon{
+  width:56px;height:56px;margin:0 auto 12px;
+  border-radius:14px;
+  background:var(--primary-dim);
+  border:1px solid rgba(124,92,191,0.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.5rem;
+}
+.upload-text{font-size:0.85rem;color:var(--text-muted);line-height:1.7;font-weight:300}
+.upload-text strong{font-weight:500;color:var(--primary)}
+.upload-hint{font-size:0.72rem;color:var(--text-dim);margin-top:6px}
+.upload-zone input{display:none}
+
+.preview-area{display:none;margin-top:16px}
+.preview-area.visible{display:block}
+.preview-wrap{position:relative;display:inline-block;max-width:100%}
+.preview-img{max-width:100%;max-height:260px;border-radius:12px;display:block}
+.preview-remove{
+  position:absolute;top:8px;right:8px;
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(0,0,0,0.5);border:none;
+  color:#fff;font-size:1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background 0.2s;
+}
+.preview-remove:hover{background:rgba(0,0,0,0.7)}
+
+/* ===== Presets Grid ===== */
+.section-label{
+  font-size:0.75rem;color:var(--text-dim);
+  letter-spacing:1px;text-transform:uppercase;
+  margin-top:28px;margin-bottom:12px;
+  display:block;font-weight:500;
+}
+
+.presets-grid{
+  display:grid;
+  grid-template-columns:repeat(5, 1fr);
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.preset-card{
+  padding:14px;border-radius:12px;
+  background:var(--bg);border:1px solid var(--border);
+  cursor:pointer;text-align:center;
+  transition:all 0.25s var(--ease);
+  text-decoration:none;color:var(--text);
+}
+.preset-card:hover{
+  border-color:var(--border-hover);
+  background:var(--surface);
+  transform:translateY(-2px);
+}
+.preset-card.active{
+  background:var(--primary-dim);
+  border-color:rgba(124,92,191,0.3);
+}
+.preset-icon{
+  font-size:1.8rem;margin-bottom:6px;
+  display:block;
+}
+.preset-label{
+  font-size:0.7rem;color:var(--text-muted);
+  line-height:1.4;font-weight:500;
+  font-family:'Noto Sans TC',sans-serif;
+}
+.preset-card.active .preset-label{
+  color:var(--primary);font-weight:600;
+}
+
+/* ===== Custom Input ===== */
+.form-group{margin-bottom:18px}
+.form-label{
+  font-size:0.75rem;color:var(--text-dim);
+  letter-spacing:1px;text-transform:uppercase;
+  margin-bottom:8px;display:block;font-weight:500;
+}
+.form-input{
+  width:100%;padding:12px 16px;border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--bg);color:var(--text);
+  font-size:0.95rem;font-weight:400;
+  font-family:'Noto Sans TC',sans-serif;
+  outline:none;transition:border-color 0.3s;
+  resize:vertical;min-height:100px;
+}
+.form-input:focus{border-color:rgba(124,92,191,0.4)}
+
+/* ===== Action Button ===== */
+.action-row{margin-top:24px;text-align:center}
+.btn-go{
+  padding:14px 48px;border-radius:100px;
+  font-size:0.95rem;font-weight:600;
+  font-family:'Noto Sans TC',sans-serif;
+  background:linear-gradient(135deg,var(--primary),var(--primary-hover));
+  color:#fff;border:none;cursor:pointer;
+  transition:all 0.3s var(--ease);
+  letter-spacing:1px;
+  box-shadow:0 4px 16px rgba(124,92,191,0.2);
+}
+.btn-go:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(124,92,191,0.3)}
+.btn-go:active{transform:translateY(0)}
+.btn-go:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-go .spinner{
+  display:none;width:18px;height:18px;
+  border:2px solid rgba(255,255,255,0.3);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin 0.7s linear infinite;
+  margin-right:8px;vertical-align:middle;
+}
+.btn-go.loading .spinner{display:inline-block}
+.btn-go.loading .btn-text{opacity:0.7}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== Result ===== */
+.result-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:28px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.03);
+  margin-bottom:16px;
+  display:none;
+  animation:fadeUp 0.4s var(--ease);
+}
+.result-card.visible{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.result-title{
+  font-size:0.75rem;color:var(--text-dim);
+  letter-spacing:1px;text-transform:uppercase;
+  font-weight:500;margin-bottom:16px;
+}
+
+.result-image{
+  width:100%;border-radius:12px;
+  margin-bottom:16px;display:block;
+}
+
+.result-actions{
+  display:flex;gap:10px;justify-content:center;
+}
+.btn-download{
+  padding:12px 28px;border-radius:100px;
+  font-size:0.85rem;font-weight:600;
+  font-family:'Noto Sans TC',sans-serif;
+  background:var(--primary);
+  color:#fff;border:none;cursor:pointer;
+  transition:all 0.2s var(--ease);
+}
+.btn-download:hover{background:var(--primary-hover);transform:translateY(-1px)}
+.btn-download:active{transform:translateY(0)}
+
+.demo-alert{
+  background:rgba(255,193,7,0.1);
+  border:1px solid rgba(255,193,7,0.3);
+  border-radius:12px;
+  padding:16px;
+  margin-bottom:16px;
+  font-size:0.85rem;
+  color:var(--text);
+  line-height:1.6;
+}
+
+@media(max-width:640px){
+  .container{padding:0 16px}
+  .header{padding:16px 0 20px}
+  .header h1{font-size:1.2rem}
+  .main-card{padding:20px}
+  .presets-grid{grid-template-columns:repeat(5, 1fr);gap:8px}
+  .preset-card{padding:10px}
+  .preset-icon{font-size:1.4rem;margin-bottom:4px}
+  .preset-label{font-size:0.65rem}
+  .btn-go{padding:12px 32px;font-size:0.9rem}
+}
+</style>
+</head>
+<body>
+
+<div class="ambient">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+</div>
+
+<div class="container">
+  <a href="index.html" class="back-link">< 回到工具箱</a>
+
+  <header class="header">
+    <h1>去背商品情境生成器</h1>
+    <p>上傳商品照片，AI 自動去背並生成精美情境圖</p>
+  </header>
+
+  <div class="main-card">
+    <div id="demoAlert" class="demo-alert" style="display:none;">
+      <strong>示範模式</strong>——此工具需在 tools.reyway.com 上使用完整功能。目前在示範環境中，生成結果將是預設圖片。
+    </div>
+
+    <!-- Upload Section -->
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">
+        拖曳圖片到此，或<strong>點擊選擇</strong>
+      </div>
+      <div class="upload-hint">支援 JPG、PNG、WebP 格式，最大 10MB</div>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp">
+    </div>
+
+    <div class="preview-area" id="previewArea">
+      <div class="preview-wrap">
+        <img id="previewImg" class="preview-img" alt="預覽">
+        <button class="preview-remove" id="removeBtn">×</button>
+      </div>
+    </div>
+
+    <!-- Preset Styles -->
+    <label class="section-label">精選風格</label>
+    <div class="presets-grid">
+      <!-- Luxury Styles -->
+      <button class="preset-card" data-preset="marble">
+        <span class="preset-icon">🪨</span>
+        <span class="preset-label">大理石</span>
+      </button>
+      <button class="preset-card" data-preset="velvet">
+        <span class="preset-icon">🎀</span>
+        <span class="preset-label">絲絨布幔</span>
+      </button>
+      <button class="preset-card" data-preset="metal">
+        <span class="preset-icon">✨</span>
+        <span class="preset-label">金屬質感</span>
+      </button>
+      <button class="preset-card" data-preset="crystal">
+        <span class="preset-icon">💎</span>
+        <span class="preset-label">水晶光影</span>
+      </button>
+      <button class="preset-card" data-preset="minimalist">
+        <span class="preset-icon">⚪</span>
+        <span class="preset-label">極簡白</span>
+      </button>
+
+      <!-- Natural Styles -->
+      <button class="preset-card" data-preset="wood">
+        <span class="preset-icon">🪵</span>
+        <span class="preset-label">原木桌面</span>
+      </button>
+      <button class="preset-card" data-preset="plant">
+        <span class="preset-icon">🌿</span>
+        <span class="preset-label">綠葉植物</span>
+      </button>
+      <button class="preset-card" data-preset="petals">
+        <span class="preset-icon">🌸</span>
+        <span class="preset-label">花瓣散落</span>
+      </button>
+      <button class="preset-card" data-preset="cotton">
+        <span class="preset-icon">🧵</span>
+        <span class="preset-label">棉麻布料</span>
+      </button>
+      <button class="preset-card" data-preset="sunlight">
+        <span class="preset-icon">☀️</span>
+        <span class="preset-label">晨光窗台</span>
+      </button>
+    </div>
+
+    <!-- Custom Description -->
+    <div class="form-group">
+      <label class="form-label">或輸入自訂情境描述</label>
+      <textarea class="form-input" id="customPrompt" placeholder="例如：在雪地上的夢幻場景、沙灘度假風、高級餐廳..." maxlength="500"></textarea>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-go" id="generateBtn" disabled>
+        <span class="spinner"></span>
+        <span class="btn-text">生成情境圖</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Result Card -->
+  <div class="result-card" id="resultCard">
+    <div class="result-title">生成結果</div>
+    <img id="resultImage" class="result-image" alt="生成的情境圖">
+    <div class="result-actions">
+      <button class="btn-download" id="downloadBtn">⬇️ 下載圖片</button>
+    </div>
+  </div>
+  </div>
+
+<script>
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+const previewArea = document.getElementById('previewArea');
+const previewImg = document.getElementById('previewImg');
+const removeBtn = document.getElementById('removeBtn');
+const generateBtn = document.getElementById('generateBtn');
+const resultCard = document.getElementById('resultCard');
+const resultImage = document.getElementById('resultImage');
+const downloadBtn = document.getElementById('downloadBtn');
+const customPrompt = document.getElementById('customPrompt');
+const demoAlert = document.getElementById('demoAlert');
+const presetCards = document.querySelectorAll('.preset-card');
+
+let selectedFile = null;
+let selectedPreset = null;
+let resultImageData = null;
+
+// Check if we're on tools.reyway.com
+const isDemoMode = !window.location.hostname.includes('tools.reyway.com');
+if (isDemoMode) {
+  demoAlert.style.display = 'block';
+}
+
+// Upload Zone Handlers
+uploadZone.addEventListener('click', () => fileInput.click());
+
+uploadZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadZone.classList.add('dragover');
+});
+
+uploadZone.addEventListener('dragleave', () => {
+  uploadZone.classList.remove('dragover');
+});
+
+uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    handleFileSelect(files[0]);
+  }
+});
+
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length > 0) {
+    handleFileSelect(e.target.files[0]);
+  }
+});
+
+function handleFileSelect(file) {
+  if (!file.type.startsWith('image/')) {
+    alert('請選擇圖片檔案');
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    alert('檔案過大，請選擇小於 10MB 的圖片');
+    return;
+  }
+
+  selectedFile = file;
+  uploadZone.style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    previewImg.src = e.target.result;
+    previewArea.classList.add('visible');
+    generateBtn.disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+removeBtn.addEventListener('click', () => {
+  selectedFile = null;
+  selectedPreset = null;
+  previewArea.classList.remove('visible');
+  uploadZone.style.display = 'block';
+  generateBtn.disabled = true;
+  customPrompt.value = '';
+  resultCard.classList.remove('visible');
+  presetCards.forEach(card => card.classList.remove('active'));
+  fileInput.value = '';
+});
+
+// Preset Selection
+presetCards.forEach(card => {
+  card.addEventListener('click', () => {
+    presetCards.forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    selectedPreset = card.dataset.preset;
+    customPrompt.value = '';
+  });
+});
+
+customPrompt.addEventListener('input', () => {
+  if (customPrompt.value.trim()) {
+    presetCards.forEach(card => card.classList.remove('active'));
+    selectedPreset = null;
+  }
+});
+
+// Generate Button
+generateBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+
+  const background = selectedPreset || customPrompt.value.trim() || 'white';
+
+  generateBtn.classList.add('loading');
+  generateBtn.disabled = true;
+
+  try {
+    // Read file as base64
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1];
+      const mimeType = selectedFile.type;
+
+      if (isDemoMode) {
+        // Demo mode: simulate API response with placeholder
+        showDemoResult();
+      } else {
+        // Real API call
+        try {
+          const response = await fetch('/api/bg-generator', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              image: base64,
+              mimeType: mimeType,
+              backgroundStyle: background,
+              customPrompt: selectedPreset ? '' : customPrompt.value.trim()
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('API error: ' + response.status);
+          }
+
+          const data = await response.json();
+          resultImageData = data.image;
+
+          resultImage.src = 'data:' + data.mimeType + ';base64,' + data.image;
+          resultCard.classList.add('visible');
+        } catch (error) {
+          console.error('Generation error:', error);
+          alert('生成失敗，請稍後重試');
+          showDemoResult();
+        }
+      }
+    };
+    reader.readAsDataURL(selectedFile);
+  } finally {
+    generateBtn.classList.remove('loading');
+    generateBtn.disabled = false;
+  }
+});
+
+function showDemoResult() {
+  // Create a simple demo result using canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 400;
+  const ctx = canvas.getContext('2d');
+
+  // Create a gradient background
+  const gradient = ctx.createLinearGradient(0, 0, 400, 400);
+  gradient.addColorStop(0, '#7c5cbf');
+  gradient.addColorStop(1, '#9b7dd6');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 400, 400);
+
+  // Add some text
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 24px "Noto Sans TC"';
+  ctx.textAlign = 'center';
+  ctx.fillText('示範結果', 200, 180);
+  ctx.font = '16px "Noto Sans TC"';
+  ctx.fillText('這是生成圖片的預覽', 200, 220);
+  ctx.fillText('實際功能需在完整環境中使用', 200, 250);
+
+  const dataUrl = canvas.toDataURL('image/png');
+  resultImageData = dataUrl.split(',')[1];
+  resultImage.src = dataUrl;
+  resultCard.classList.add('visible');
+}
+
+// Download Button
+downloadBtn.addEventListener('click', () => {
+  if (!resultImage.src) return;
+
+  const link = document.createElement('a');
+  link.href = resultImage.src;
+  link.download = 'bg-generator-' + Date.now() + '.png';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
+</script>
+
+</body>
+</html>
