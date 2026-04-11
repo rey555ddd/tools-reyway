@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>笙闆的 AI 工具箱</title>
+<meta name="description" content="笙闆的AI工具箱——歡迎親朋好友自由取用">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#fafbfd;
+  --surface:#ffffff;
+  --border:rgba(0,0,0,0.08);
+  --border-hover:rgba(0,0,0,0.15);
+  --primary:#4a8fd4;
+  --primary-dim:rgba(74,143,212,0.08);
+  --gold:#b8963e;
+  --gold-dim:rgba(184,150,62,0.08);
+  --green:#3a9a6e;
+  --green-dim:rgba(58,154,110,0.08);
+  --text:#1a2030;
+  --text-muted:rgba(26,32,48,0.5);
+  --text-dim:rgba(26,32,48,0.3);
+  --radius:16px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter','Noto Sans TC',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+}
+::selection{background:rgba(74,143,212,0.15)}
+
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(120px);will-change:transform}
+.orb-1{width:45vw;height:45vw;top:-15%;left:-10%;background:radial-gradient(circle,rgba(74,143,212,0.04),transparent 65%);animation:d1 28s ease-in-out infinite}
+.orb-2{width:35vw;height:35vw;bottom:-10%;right:-8%;background:radial-gradient(circle,rgba(184,150,62,0.03),transparent 65%);animation:d2 22s ease-in-out infinite}
+@keyframes d1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,20px)}}
+@keyframes d2{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,-30px)}}
+
+.container{max-width:680px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+
+.header{padding:56px 0 12px;text-align:center}
+.header h1{
+  font-size:1.7rem;font-weight:700;
+  font-family:'Noto Sans TC',sans-serif;
+  margin-bottom:10px;
+}
+.header h1 span{
+  background:linear-gradient(135deg,var(--primary),var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.header p{
+  font-size:0.84rem;color:var(--text-muted);
+  line-height:1.7;font-weight:300;
+}
+
+/* ===== Tool Grid ===== */
+.tool-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+  gap:16px;
+  padding:36px 0 60px;
+}
+.tool-card{
+  display:flex;align-items:flex-start;gap:16px;
+  padding:24px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  text-decoration:none;color:var(--text);
+  transition:all 0.35s var(--ease);
+  cursor:pointer;position:relative;overflow:hidden;
+  box-shadow:0 1px 4px rgba(0,0,0,0.03);
+}
+.tool-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--primary),transparent);
+  opacity:0;transition:opacity 0.35s;
+}
+.tool-card:hover{
+  border-color:var(--border-hover);
+  transform:translateY(-3px);
+  box-shadow:0 8px 28px rgba(58,124,198,0.07), 0 2px 8px rgba(0,0,0,0.04);
+}
+.tool-card:hover::before{opacity:1}
+
+.tool-card-icon{
+  width:48px;height:48px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;font-weight:700;
+  font-family:'Noto Sans TC',sans-serif;
+}
+.icon-blue{background:var(--primary-dim);border:1px solid rgba(74,143,212,0.15);color:var(--primary)}
+.icon-green{background:var(--green-dim);border:1px solid rgba(58,154,110,0.15);color:var(--green)}
+.icon-gold{background:var(--gold-dim);border:1px solid rgba(184,150,62,0.15);color:var(--gold)}
+
+.tool-card-body{flex:1}
+.tool-card-body h2{
+  font-size:1.05rem;font-weight:700;
+  font-family:'Noto Sans TC',sans-serif;
+  margin-bottom:4px;
+}
+.tool-card-body p{
+  font-size:0.78rem;color:var(--text-muted);
+  line-height:1.6;font-weight:300;
+}
+.tool-card-arrow{
+  font-size:1.1rem;color:var(--text-dim);
+  transition:transform 0.3s var(--ease);
+  align-self:center;
+}
+.tool-card:hover .tool-card-arrow{transform:translateX(4px);color:var(--primary)}
+
+footer{text-align:center;padding:0 0 40px}
+footer p{font-size:0.7rem;color:var(--text-dim);letter-spacing:1px}
+
+@media(max-width:640px){
+  .container{padding:0 16px}
+  .header{padding:40px 0 8px}
+  .header h1{font-size:1.4rem}
+  .tool-grid{grid-template-columns:1fr;gap:12px;padding:28px 0 48px}
+  .tool-card{padding:20px}
+}
+</style>
+</head>
+<body>
+
+<div class="ambient">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+</div>
+
+<div class="container">
+  <header class="header">
+    <h1><span>笙闆的 AI 工具箱</span></h1>
+    <p>歡迎親朋好友自由取用，有任何功能需求也可以留言給我。</p>
+  </header>
+
+  <div class="tool-grid">
+    <a class="tool-card" href="copywriter.html">
+      <div class="tool-card-icon icon-blue">文</div>
+      <div class="tool-card-body">
+        <h2>文案小幫手</h2>
+        <p>去 AI 味、語氣改寫、文案精簡、文案生成——貼上文字就搞定。</p>
+      </div>
+      <span class="tool-card-arrow">&#8250;</span>
+    </a>
+
+    <a class="tool-card" href="converter.html">
+      <div class="tool-card-icon icon-green">換</div>
+      <div class="tool-card-body">
+        <h2>單位換算器</h2>
+        <p>拍照自動辨識美國超市標價，換算成台幣、台斤，一目了然。</p>
+      </div>
+      <span class="tool-card-arrow">&#8250;</span>
+    </a>
+  </div>
+
+  <footer>
+    <p>笙闆的 AI 工具箱 &middot; Powered by REYWAY</p>
+  </footer>
+</div>
+
+</body>
+</html>
