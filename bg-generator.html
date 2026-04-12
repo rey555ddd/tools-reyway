@@ -1,577 +1,832 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>去背商品情境生成器 — 笙闆的AI工具箱</title>
-<meta name="description" content="上傳商品照片，AI 自動去背並生成精美情境圖">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#fafbfd;
-  --surface:#ffffff;
-  --border:rgba(0,0,0,0.08);
-  --border-hover:rgba(0,0,0,0.15);
-  --primary:#7c5cbf;
-  --primary-hover:#6b4aad;
-  --primary-dim:rgba(124,92,191,0.08);
-  --text:#1a2030;
-  --text-muted:rgba(26,32,48,0.5);
-  --text-dim:rgba(26,32,48,0.3);
-  --radius:16px;
-  --ease:cubic-bezier(.22,1,.36,1);
-}
-html{scroll-behavior:smooth}
-body{
-  font-family:'Inter','Noto Sans TC',sans-serif;
-  background:var(--bg);color:var(--text);
-  min-height:100vh;-webkit-font-smoothing:antialiased;
-}
-::selection{background:rgba(124,92,191,0.15)}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>去背商品情境生成器 — 笙闆的AI工具箱</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-.orb{position:absolute;border-radius:50%;filter:blur(120px);will-change:transform}
-.orb-1{width:45vw;height:45vw;top:-15%;left:-10%;background:radial-gradient(circle,rgba(124,92,191,0.04),transparent 65%);animation:d1 28s ease-in-out infinite}
-.orb-2{width:35vw;height:35vw;bottom:-10%;right:-8%;background:radial-gradient(circle,rgba(184,150,62,0.03),transparent 65%);animation:d2 22s ease-in-out infinite}
-@keyframes d1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,20px)}}
-@keyframes d2{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,-30px)}}
+        :root {
+            --bg: #f8f9fc;
+            --surface: rgba(255, 255, 255, 0.72);
+            --border: rgba(0, 0, 0, 0.06);
+            --border-hover: rgba(0, 0, 0, 0.12);
+            --text: #111827;
+            --text-secondary: rgba(17, 24, 39, 0.55);
+            --text-tertiary: rgba(17, 24, 39, 0.3);
+            --radius: 20px;
+            --radius-sm: 14px;
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+            --blur: saturate(180%) blur(20px);
+            --primary: #8b6cc1;
+            --primary-hover: #7a5bb0;
+            --primary-soft: rgba(139, 108, 193, 0.07);
+        }
 
-.container{max-width:680px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+        }
 
-.back-link{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:10px 0 0;font-size:0.8rem;
-  color:var(--text-muted);text-decoration:none;
-  transition:color 0.2s;
-}
-.back-link:hover{color:var(--primary)}
+        body {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
 
-.header{padding:20px 0 28px;text-align:center}
-.header h1{
-  font-size:1.5rem;font-weight:700;
-  font-family:'Noto Sans TC',sans-serif;
-  color:var(--text);letter-spacing:1px;
-  margin-bottom:6px;
-}
-.header p{
-  font-size:0.82rem;color:var(--text-muted);
-  line-height:1.7;font-weight:300;
-}
+        /* Ambient background with orbs */
+        .ambient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            background: var(--bg);
+        }
 
-/* ===== Main Card ===== */
-.main-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:28px;
-  box-shadow:0 2px 12px rgba(0,0,0,0.03);
-  margin-bottom:16px;
-}
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            mix-blend-mode: multiply;
+            opacity: 0.4;
+            filter: blur(60px);
+        }
 
-/* ===== Upload Zone ===== */
-.upload-zone{
-  border:2px dashed var(--border);
-  border-radius:14px;
-  padding:48px 20px;
-  text-align:center;
-  cursor:pointer;
-  transition:all 0.3s var(--ease);
-  position:relative;
-  overflow:hidden;
-}
-.upload-zone:hover{border-color:rgba(124,92,191,0.4);background:var(--primary-dim)}
-.upload-zone.dragover{border-color:var(--primary);background:rgba(124,92,191,0.06)}
-.upload-icon{
-  width:56px;height:56px;margin:0 auto 12px;
-  border-radius:14px;
-  background:var(--primary-dim);
-  border:1px solid rgba(124,92,191,0.15);
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.5rem;
-}
-.upload-text{font-size:0.85rem;color:var(--text-muted);line-height:1.7;font-weight:300}
-.upload-text strong{font-weight:500;color:var(--primary)}
-.upload-hint{font-size:0.72rem;color:var(--text-dim);margin-top:6px}
-.upload-zone input{display:none}
+        .orb-1 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(139, 108, 193, 0.5) 0%, transparent 70%);
+            top: -150px;
+            right: -100px;
+            animation: float 20s infinite ease-in-out;
+        }
 
-.preview-area{display:none;margin-top:16px}
-.preview-area.visible{display:block}
-.preview-wrap{position:relative;display:inline-block;max-width:100%}
-.preview-img{max-width:100%;max-height:260px;border-radius:12px;display:block}
-.preview-remove{
-  position:absolute;top:8px;right:8px;
-  width:28px;height:28px;border-radius:50%;
-  background:rgba(0,0,0,0.5);border:none;
-  color:#fff;font-size:1rem;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:background 0.2s;
-}
-.preview-remove:hover{background:rgba(0,0,0,0.7)}
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(218, 165, 32, 0.3) 0%, transparent 70%);
+            bottom: -100px;
+            left: -50px;
+            animation: float 25s infinite ease-in-out reverse;
+        }
 
-/* ===== Presets Grid ===== */
-.section-label{
-  font-size:0.75rem;color:var(--text-dim);
-  letter-spacing:1px;text-transform:uppercase;
-  margin-top:28px;margin-bottom:12px;
-  display:block;font-weight:500;
-}
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(30px, -30px); }
+            66% { transform: translate(-20px, 20px); }
+        }
 
-.presets-grid{
-  display:grid;
-  grid-template-columns:repeat(5, 1fr);
-  gap:10px;
-  margin-bottom:20px;
-}
+        .noise {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><filter id="noise"><feTurbulence baseFrequency="0.9" numOctaves="4" seed="2"/></filter><rect width="100" height="100" fill="rgba(0,0,0,0.02)" filter="url(%23noise)"/></svg>');
+            background-size: 100px 100px;
+        }
 
-.preset-card{
-  padding:14px;border-radius:12px;
-  background:var(--bg);border:1px solid var(--border);
-  cursor:pointer;text-align:center;
-  transition:all 0.25s var(--ease);
-  text-decoration:none;color:var(--text);
-}
-.preset-card:hover{
-  border-color:var(--border-hover);
-  background:var(--surface);
-  transform:translateY(-2px);
-}
-.preset-card.active{
-  background:var(--primary-dim);
-  border-color:rgba(124,92,191,0.3);
-}
-.preset-icon{
-  font-size:1.8rem;margin-bottom:6px;
-  display:block;
-}
-.preset-label{
-  font-size:0.7rem;color:var(--text-muted);
-  line-height:1.4;font-weight:500;
-  font-family:'Noto Sans TC',sans-serif;
-}
-.preset-card.active .preset-label{
-  color:var(--primary);font-weight:600;
-}
+        .container {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 24px;
+            width: 100%;
+        }
 
-/* ===== Custom Input ===== */
-.form-group{margin-bottom:18px}
-.form-label{
-  font-size:0.75rem;color:var(--text-dim);
-  letter-spacing:1px;text-transform:uppercase;
-  margin-bottom:8px;display:block;font-weight:500;
-}
-.form-input{
-  width:100%;padding:12px 16px;border-radius:12px;
-  border:1px solid var(--border);
-  background:var(--bg);color:var(--text);
-  font-size:0.95rem;font-weight:400;
-  font-family:'Noto Sans TC',sans-serif;
-  outline:none;transition:border-color 0.3s;
-  resize:vertical;min-height:100px;
-}
-.form-input:focus{border-color:rgba(124,92,191,0.4)}
+        /* Navigation */
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 48px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
 
-/* ===== Action Button ===== */
-.action-row{margin-top:24px;text-align:center}
-.btn-go{
-  padding:14px 48px;border-radius:100px;
-  font-size:0.95rem;font-weight:600;
-  font-family:'Noto Sans TC',sans-serif;
-  background:linear-gradient(135deg,var(--primary),var(--primary-hover));
-  color:#fff;border:none;cursor:pointer;
-  transition:all 0.3s var(--ease);
-  letter-spacing:1px;
-  box-shadow:0 4px 16px rgba(124,92,191,0.2);
-}
-.btn-go:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(124,92,191,0.3)}
-.btn-go:active{transform:translateY(0)}
-.btn-go:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
-.btn-go .spinner{
-  display:none;width:18px;height:18px;
-  border:2px solid rgba(255,255,255,0.3);
-  border-top-color:#fff;border-radius:50%;
-  animation:spin 0.7s linear infinite;
-  margin-right:8px;vertical-align:middle;
-}
-.btn-go.loading .spinner{display:inline-block}
-.btn-go.loading .btn-text{opacity:0.7}
-@keyframes spin{to{transform:rotate(360deg)}}
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 200ms var(--ease);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+        }
 
-/* ===== Result ===== */
-.result-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:28px;
-  box-shadow:0 2px 12px rgba(0,0,0,0.03);
-  margin-bottom:16px;
-  display:none;
-  animation:fadeUp 0.4s var(--ease);
-}
-.result-card.visible{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        .nav-link:hover {
+            color: var(--text);
+            background: var(--primary-soft);
+        }
 
-.result-title{
-  font-size:0.75rem;color:var(--text-dim);
-  letter-spacing:1px;text-transform:uppercase;
-  font-weight:500;margin-bottom:16px;
-}
+        .nav-link svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+        }
 
-.result-image{
-  width:100%;border-radius:12px;
-  margin-bottom:16px;display:block;
-}
+        /* Header */
+        .header {
+            margin-bottom: 48px;
+        }
 
-.result-actions{
-  display:flex;gap:10px;justify-content:center;
-}
-.btn-download{
-  padding:12px 28px;border-radius:100px;
-  font-size:0.85rem;font-weight:600;
-  font-family:'Noto Sans TC',sans-serif;
-  background:var(--primary);
-  color:#fff;border:none;cursor:pointer;
-  transition:all 0.2s var(--ease);
-}
-.btn-download:hover{background:var(--primary-hover);transform:translateY(-1px)}
-.btn-download:active{transform:translateY(0)}
+        .header h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            line-height: 1.2;
+            background: linear-gradient(135deg, var(--text) 0%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
 
-.demo-alert{
-  background:rgba(255,193,7,0.1);
-  border:1px solid rgba(255,193,7,0.3);
-  border-radius:12px;
-  padding:16px;
-  margin-bottom:16px;
-  font-size:0.85rem;
-  color:var(--text);
-  line-height:1.6;
-}
+        .header p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
 
-@media(max-width:640px){
-  .container{padding:0 16px}
-  .header{padding:16px 0 20px}
-  .header h1{font-size:1.2rem}
-  .main-card{padding:20px}
-  .presets-grid{grid-template-columns:repeat(5, 1fr);gap:8px}
-  .preset-card{padding:10px}
-  .preset-icon{font-size:1.4rem;margin-bottom:4px}
-  .preset-label{font-size:0.65rem}
-  .btn-go{padding:12px 32px;font-size:0.9rem}
-}
-</style>
+        /* Demo Alert */
+        #demoAlert {
+            display: none;
+            padding: 16px 20px;
+            background: var(--primary-soft);
+            border: 1px solid var(--primary);
+            border-radius: var(--radius-sm);
+            color: var(--primary);
+            font-size: 14px;
+            margin-bottom: 32px;
+            backdrop-filter: var(--blur);
+            font-weight: 500;
+        }
+
+        /* Main Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+        }
+
+        /* Upload Zone */
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        #uploadZone {
+            padding: 48px;
+            border: 2px dashed var(--border-hover);
+            border-radius: var(--radius);
+            background: var(--surface);
+            backdrop-filter: var(--blur);
+            cursor: pointer;
+            transition: all 300ms var(--ease);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            min-height: 320px;
+        }
+
+        #uploadZone:hover {
+            border-color: var(--primary);
+            background: rgba(139, 108, 193, 0.05);
+        }
+
+        #uploadZone.dragover {
+            border-color: var(--primary);
+            background: rgba(139, 108, 193, 0.1);
+            transform: scale(1.02);
+        }
+
+        #uploadZone svg {
+            width: 48px;
+            height: 48px;
+            color: var(--text-secondary: 1fr;
+                gap: 32px;
+            }
+        }
+
+        /* Upload Zone */
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        #uploadZone {
+            padding: 48px;
+            border: 2px dashed var(--border-hover);
+            border-radius: var(--radius);
+            background: var(--surface);
+            backdrop-filter: var(--blur);
+            cursor: pointer;
+            transition: all 300ms var(--ease);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            min-height: 320px;
+        }
+
+        #uploadZone:hover {
+            border-color: var(--primary);
+            background: rgba(139, 108, 193, 0.05);
+        }
+
+        #uploadZone.dragover {
+            border-color: var(--primary);
+            background: rgba(139, 108, 193, 0.1);
+            transform: scale(1.02);
+        }
+
+        #uploadZone svg {
+            width: 48px;
+            height: 48px;
+            color: var(--text-secondary);
+            transition: all 300ms var(--ease);
+        }
+
+        #uploadZone:hover svg {
+            color: var(--primary);
+        }
+
+        #uploadZone p {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text);
+            text-align: center;
+        }
+
+        #uploadZone span {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Preview Area */
+        #previewArea {
+            position: relative;
+            padding: 32px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            backdrop-filter: var(--blur);
+            display: none;
+            opacity: 0;
+            transition: all 300ms var(--ease);
+        }
+
+        #previewArea.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        #previewImg {
+            width: 100%;
+            height: auto;
+            border-radius: var(--radius-sm);
+            object-fit: contain;
+            max-height: 400px;
+        }
+
+        #removeBtn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 40px;
+            height: 40px;
+            background: rgba(17, 24, 39, 0.8);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 200ms var(--ease);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #removeBtn:hover {
+            background: rgba(17, 24, 39, 0.95);
+            transform: scale(1.1);
+        }
+
+        /* Presets Grid */
+        .presets-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .presets-label {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .presets-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 1200px) {
+            .presets-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .presets-grid {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 10px;
+            }
+        }
+
+        .preset-card {
+            padding: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 200ms var(--ease);
+            text-align: center;
+            backdrop-filter: var(--blur);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preset-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+            background: rgba(139, 108, 193, 0.05);
+        }
+
+        .preset-card.active {
+            background: var(--primary-soft);
+            border-color: var(--primary);
+            box-shadow: 0 8px 24px rgba(139, 108, 193, 0.15);
+        }
+
+        .preset-emoji {
+            font-size: 24px;
+        }
+
+        .preset-name {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            line-height: 1.3;
+        }
+
+        .preset-card.active .preset-name {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Custom Prompt */
+        .custom-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .custom-label {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        #customPrompt {
+            width: 100%;
+            padding: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: var(--text);
+            resize: vertical;
+            min-height: 100px;
+            transition: all 200ms var(--ease);
+            backdrop-filter: var(--blur);
+        }
+
+        #customPrompt:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-soft);
+        }
+
+        #customPrompt::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        /* Generate Button */
+        #generateBtn {
+            padding: 16px 32px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 100px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 200ms var(--ease);
+            box-shadow: 0 8px 24px rgba(139, 108, 193, 0.25);
+        }
+
+        #generateBtn:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(139, 108, 193, 0.35);
+        }
+
+        #generateBtn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        #generateBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #generateBtn.loading {
+            position: relative;
+        }
+
+        #generateBtn.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            right: 12px;
+            margin-top: -8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 600ms linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Result Card */
+        #resultCard {
+            display: none;
+            opacity: 0;
+            transition: all 300ms var(--ease);
+            margin-top: 40px;
+        }
+
+        #resultCard.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        .result-wrapper {
+            padding: 32px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            backdrop-filter: var(--blur);
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 24px;
+        }
+
+        #resultImage {
+            width: 100%;
+            height: auto;
+            border-radius: var(--radius-sm);
+            margin-bottom: 24px;
+            object-fit: contain;
+            max-height: 500px;
+            background: linear-gradient(135deg, rgba(139, 108, 193, 0.05) 0%, rgba(218, 165, 32, 0.05) 100%);
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        #downloadBtn {
+            flex: 1;
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 200ms var(--ease);
+            box-shadow: 0 4px 12px rgba(139, 108, 193, 0.2);
+        }
+
+        #downloadBtn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(139, 108, 193, 0.3);
+        }
+
+        /* Footer */
+        .footer {
+            position: relative;
+            z-index: 2;
+            padding: 40px 24px;
+            text-align: center;
+            color: var(--text-tertiary);
+            font-size: 13px;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 16px;
+            }
+
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .header p {
+                font-size: 16px;
+            }
+
+            .grid {
+                gap: 24px;
+            }
+
+            #uploadZone {
+                padding: 32px 24px;
+                min-height: 280px;
+            }
+
+            #uploadZone svg {
+                width: 36px;
+                height: 36px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="ambient">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+    <div class="noise"></div>
 
-<div class="ambient">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-</div>
+    <div class="container">
+        <nav class="nav">
+            <a href="index.html" class="nav-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span>回到工具箱</span>
+            </a>
+        </nav>
 
-<div class="container">
-  <a href="index.html" class="back-link">< 回到工具箱</a>
+        <div class="header">
+            <h1>去背商品情境生成器</h1>
+            <p>上傳商品照片，AI 自動去背並生成精美情境圖</p>
+        </div>
 
-  <header class="header">
-    <h1>去背商品情境生成器</h1>
-    <p>上傳商品照片，AI 自動去背並生成精美情境圖</p>
-  </header>
+        <div id="demoAlert">
+            ℹ 您目前在演示模式下。在 tools.reyway.com 上使用此工具可獲得完整功能。
+        </div>
 
-  <div class="main-card">
-    <div id="demoAlert" class="demo-alert" style="display:none;">
-      <strong>示範模式</strong>——此工具需在 tools.reyway.com 上使用完整功能。目前在示範環境中，生成結果將是預設圖片。
+        <div class="grid">
+            <!-- Left Column: Upload -->
+            <div class="upload-section">
+                <div id="uploadZone">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                    <p>拖拽或點擊上傳圖片</p>
+                    <span>支持 JPG, PNG, WebP • 最大 10MB</span>
+                </div>
+                <input type="file" id="fileInput" accept="image/*">
+
+                <div id="previewArea">
+                    <img id="previewImg" src="" alt="Preview">
+                    <button id="removeBtn">×</button>
+                </div>
+            </div>
+
+            <!-- Right Column: Presets & Settings -->
+            <div class="presets-section">
+                <div>
+                    <div class="presets-label">預設風格</div>
+                    <div class="presets-grid">
+                        <div class="preset-card" data-preset="marble">
+                            <span class="preset-emoji">🪨</span>
+                            <span class="preset-name">大理石</span>
+                        </div>
+                        <div class="preset-card" data-preset="velvet">
+                            <span class="preset-emoji">🎀</span>
+                            <span class="preset-name">絲絨布幔</span>
+                        </div>
+                        <div class="preset-card" data-preset="metal">
+                            <span class="preset-emoji">✨</span>
+                            <span class="preset-name">金屬質感</span>
+                        </div>
+                        <div class="preset-card" data-preset="crystal">
+                            <span class="preset-emoji">💎</span>
+                            <span class="preset-name">水晶光影</span>
+                        </div>
+                        <div class="preset-card" data-preset="minimalist">
+                            <span class="preset-emoji">⚪</span>
+                            <span class="preset-name">極簡白</span>
+                        </div>
+                        <div class="preset-card" data-preset="wood">
+                            <span class="preset-emoji">🪵</span>
+                            <span class="preset-name">原木桌面</span>
+                        </div>
+                        <div class="preset-card" data-preset="plant">
+                            <span class="preset-emoji">🌿</span>
+                            <span class="preset-name">綠葉植物</span>
+                        </div>
+                        <div class="preset-card" data-preset="petals">
+                            <span class="preset-emoji">🌸</span>
+                            <span class="preset-name">花瓣散落</span>
+                        </div>
+                        <div class="preset-card" data-preset="cotton">
+                            <span class="preset-emoji">🧵</span>
+                            <span class="preset-name">棉鸻布料</span>
+                        </div>
+                        <div class="preset-card" data-preset="sunlight">
+                            <span class="preset-emoji">☀️</span>
+                            <span class="preset-name">晨光窗台</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="custom-section">
+                    <label class="custom-label">自訂提示詞</label>
+                    <textarea id="customPrompt" placeholder="或在此描述您想要的場景背景，例如：現代客廳，木地板，自然光，綠植..."></textarea>
+                </div>
+
+                <button id="generateBtn" disabled>生成情境圖</button>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div id="resultCard">
+            <div class="result-wrapper">
+                <div class="result-title">✨ 生成完成</div>
+                <img id="resultImage" src="" alt="Result">
+                <div class="result-actions">
+                    <button id="downloadBtn">下載結果</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Upload Section -->
-    <div class="upload-zone" id="uploadZone">
-      <div class="upload-icon">📷</div>
-      <div class="upload-text">
-        拖曳圖片到此，或<strong>點擊選擇</strong>
-      </div>
-      <div class="upload-hint">支援 JPG、PNG、WebP 格式，最大 10MB</div>
-      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp">
-    </div>
+    <footer class="footer">
+        笙闆的 AI 工具箱 · Powered by REYWAY
+    </footer>
 
-    <div class="preview-area" id="previewArea">
-      <div class="preview-wrap">
-        <img id="previewImg" class="preview-img" alt="預覽">
-        <button class="preview-remove" id="removeBtn">×</button>
-      </div>
-    </div>
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewArea = document.getElementById('previewArea');
+        const previewImg = document.getElementById('previewImg');
+        const removeBtn = document.getElementById('removeBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        const resultCard = document.getElementById('resultCard');
+        const resultImage = document.getElementById('resultImage');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const customPrompt = document.getElementById('customPrompt');
+        const demoAlert = document.getElementById('demoAlert');
+        const presetCards = document.querySelectorAll('.preset-card');
 
-    <!-- Preset Styles -->
-    <label class="section-label">精選風格</label>
-    <div class="presets-grid">
-      <!-- Luxury Styles -->
-      <button class="preset-card" data-preset="marble">
-        <span class="preset-icon">🪨</span>
-        <span class="preset-label">大理石</span>
-      </button>
-      <button class="preset-card" data-preset="velvet">
-        <span class="preset-icon">🎀</span>
-        <span class="preset-label">絲絨布幔</span>
-      </button>
-      <button class="preset-card" data-preset="metal">
-        <span class="preset-icon">✨</span>
-        <span class="preset-label">金屬質感</span>
-      </button>
-      <button class="preset-card" data-preset="crystal">
-        <span class="preset-icon">💎</span>
-        <span class="preset-label">水晶光影</span>
-      </button>
-      <button class="preset-card" data-preset="minimalist">
-        <span class="preset-icon">⚪</span>
-        <span class="preset-label">極簡白</span>
-      </button>
+        let selectedFile = null;
+        let selectedPreset = null;
+        let resultImageData = null;
 
-      <!-- Natural Styles -->
-      <button class="preset-card" data-preset="wood">
-        <span class="preset-icon">🪵</span>
-        <span class="preset-label">原木桌面</span>
-      </button>
-      <button class="preset-card" data-preset="plant">
-        <span class="preset-icon">🌿</span>
-        <span class="preset-label">綠葉植物</span>
-      </button>
-      <button class="preset-card" data-preset="petals">
-        <span class="preset-icon">🌸</span>
-        <span class="preset-label">花瓣散落</span>
-      </button>
-      <button class="preset-card" data-preset="cotton">
-        <span class="preset-icon">🧵</span>
-        <span class="preset-label">棉麻布料</span>
-      </button>
-      <button class="preset-card" data-preset="sunlight">
-        <span class="preset-icon">☀️</span>
-        <span class="preset-label">晨光窗台</span>
-      </button>
-    </div>
+        const isDemoMode = !window.location.hostname.includes('tools.reyway.com');
+        if (isDemoMode) { demoAlert.style.display = 'block'; }
 
-    <!-- Custom Description -->
-    <div class="form-group">
-      <label class="form-label">或輸入自訂情境描述</label>
-      <textarea class="form-input" id="customPrompt" placeholder="例如：在雪地上的夢幻場景、沙灘度假風、高級餐廳..." maxlength="500"></textarea>
-    </div>
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => { uploadZone.classList.remove('dragover'); });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault(); uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFileSelect(e.target.files[0]); });
 
-    <div class="action-row">
-      <button class="btn-go" id="generateBtn" disabled>
-        <span class="spinner"></span>
-        <span class="btn-text">生成情境圖</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- Result Card -->
-  <div class="result-card" id="resultCard">
-    <div class="result-title">生成結果</div>
-    <img id="resultImage" class="result-image" alt="生成的情境圖">
-    <div class="result-actions">
-      <button class="btn-download" id="downloadBtn">⬇️ 下載圖片</button>
-    </div>
-  </div>
-  </div>
-
-<script>
-const uploadZone = document.getElementById('uploadZone');
-const fileInput = document.getElementById('fileInput');
-const previewArea = document.getElementById('previewArea');
-const previewImg = document.getElementById('previewImg');
-const removeBtn = document.getElementById('removeBtn');
-const generateBtn = document.getElementById('generateBtn');
-const resultCard = document.getElementById('resultCard');
-const resultImage = document.getElementById('resultImage');
-const downloadBtn = document.getElementById('downloadBtn');
-const customPrompt = document.getElementById('customPrompt');
-const demoAlert = document.getElementById('demoAlert');
-const presetCards = document.querySelectorAll('.preset-card');
-
-let selectedFile = null;
-let selectedPreset = null;
-let resultImageData = null;
-
-// Check if we're on tools.reyway.com
-const isDemoMode = !window.location.hostname.includes('tools.reyway.com');
-if (isDemoMode) {
-  demoAlert.style.display = 'block';
-}
-
-// Upload Zone Handlers
-uploadZone.addEventListener('click', () => fileInput.click());
-
-uploadZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  uploadZone.classList.add('dragover');
-});
-
-uploadZone.addEventListener('dragleave', () => {
-  uploadZone.classList.remove('dragover');
-});
-
-uploadZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  uploadZone.classList.remove('dragover');
-  const files = e.dataTransfer.files;
-  if (files.length > 0) {
-    handleFileSelect(files[0]);
-  }
-});
-
-fileInput.addEventListener('change', (e) => {
-  if (e.target.files.length > 0) {
-    handleFileSelect(e.target.files[0]);
-  }
-});
-
-function handleFileSelect(file) {
-  if (!file.type.startsWith('image/')) {
-    alert('請選擇圖片檔案');
-    return;
-  }
-
-  if (file.size > 10 * 1024 * 1024) {
-    alert('檔案過大，請選擇小於 10MB 的圖片');
-    return;
-  }
-
-  selectedFile = file;
-  uploadZone.style.display = 'none';
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    previewImg.src = e.target.result;
-    previewArea.classList.add('visible');
-    generateBtn.disabled = false;
-  };
-  reader.readAsDataURL(file);
-}
-
-removeBtn.addEventListener('click', () => {
-  selectedFile = null;
-  selectedPreset = null;
-  previewArea.classList.remove('visible');
-  uploadZone.style.display = 'block';
-  generateBtn.disabled = true;
-  customPrompt.value = '';
-  resultCard.classList.remove('visible');
-  presetCards.forEach(card => card.classList.remove('active'));
-  fileInput.value = '';
-});
-
-// Preset Selection
-presetCards.forEach(card => {
-  card.addEventListener('click', () => {
-    presetCards.forEach(c => c.classList.remove('active'));
-    card.classList.add('active');
-    selectedPreset = card.dataset.preset;
-    customPrompt.value = '';
-  });
-});
-
-customPrompt.addEventListener('input', () => {
-  if (customPrompt.value.trim()) {
-    presetCards.forEach(card => card.classList.remove('active'));
-    selectedPreset = null;
-  }
-});
-
-// Generate Button
-generateBtn.addEventListener('click', async () => {
-  if (!selectedFile) return;
-
-  const background = selectedPreset || customPrompt.value.trim() || 'white';
-
-  generateBtn.classList.add('loading');
-  generateBtn.disabled = true;
-
-  try {
-    // Read file as base64
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target.result.split(',')[1];
-      const mimeType = selectedFile.type;
-
-      if (isDemoMode) {
-        // Demo mode: simulate API response with placeholder
-        showDemoResult();
-      } else {
-        // Real API call
-        try {
-          const response = await fetch('/api/bg-generator', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              image: base64,
-              mimeType: mimeType,
-              backgroundStyle: background,
-              customPrompt: selectedPreset ? '' : customPrompt.value.trim()
-            })
-          });
-
-          if (!response.ok) {
-            throw new Error('API error: ' + response.status);
-          }
-
-          const data = await response.json();
-          resultImageData = data.image;
-
-          resultImage.src = 'data:' + data.mimeType + ';base64,' + data.image;
-          resultCard.classList.add('visible');
-        } catch (error) {
-          console.error('Generation error:', error);
-          alert('生成失敗，請稍後重試');
-          showDemoResult();
+        function handleFileSelect(file) {
+            if (!file.type.startsWith('image/')) { alert('請選擇圖片檔案'); return; }
+            if (file.size > 10 * 1024 * 1024) { alert('檔案過大，請選擇小於 10MB 的圖片'); return; }
+            selectedFile = file;
+            uploadZone.style.display = 'none';
+            const reader = new FileReader();
+            reader.onload = (e) => { previewImg.src = e.target.result; previewArea.classList.add('visible'); generateBtn.disabled = false; };
+            reader.readAsDataURL(file);
         }
-      }
-    };
-    reader.readAsDataURL(selectedFile);
-  } finally {
-    generateBtn.classList.remove('loading');
-    generateBtn.disabled = false;
-  }
-});
 
-function showDemoResult() {
-  // Create a simple demo result using canvas
-  const canvas = document.createElement('canvas');
-  canvas.width = 400;
-  canvas.height = 400;
-  const ctx = canvas.getContext('2d');
+        removeBtn.addEventListener('click', () => {
+            selectedFile = null; selectedPreset = null;
+            previewArea.classList.remove('visible'); uploadZone.style.display = 'block';
+            generateBtn.disabled = true; customPrompt.value = '';
+            resultCard.classList.remove('visible');
+            presetCards.forEach(card => card.classList.remove('active'));
+            fileInput.value = '';
+        });
 
-  // Create a gradient background
-  const gradient = ctx.createLinearGradient(0, 0, 400, 400);
-  gradient.addColorStop(0, '#7c5cbf');
-  gradient.addColorStop(1, '#9b7dd6');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 400, 400);
+        presetCards.forEach(card => {
+            card.addEventListener('click', () => {
+                presetCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active'); selectedPreset = card.dataset.preset; customPrompt.value = '';
+            });
+        });
 
-  // Add some text
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 24px "Noto Sans TC"';
-  ctx.textAlign = 'center';
-  ctx.fillText('示範結果', 200, 180);
-  ctx.font = '16px "Noto Sans TC"';
-  ctx.fillText('這是生成圖片的預覽', 200, 220);
-  ctx.fillText('實際功能需在完整環境中使用', 200, 250);
+        customPrompt.addEventListener('input', () => {
+            if (customPrompt.value.trim()) { presetCards.forEach(card => card.classList.remove('active')); selectedPreset = null; }
+        });
 
-  const dataUrl = canvas.toDataURL('image/png');
-  resultImageData = dataUrl.split(',')[1];
-  resultImage.src = dataUrl;
-  resultCard.classList.add('visible');
-}
+        generateBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            const background = selectedPreset || customPrompt.value.trim() || 'white';
+            generateBtn.classList.add('loading'); generateBtn.disabled = true;
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const base64 = e.target.result.split(',')[1];
+                    const mimeType = selectedFile.type;
+                    if (isDemoMode) { showDemoRed = false; }
+        });
 
-// Download Button
-downloadBtn.addEventListener('click', () => {
-  if (!resultImage.src) return;
+        function showDemoResult() {
+            const canvas = document.createElement('canvas'); canvas.width=400; canvas.height=400;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0,0,400,400);
+            gradient.addColorStop(0,'#8b6cc1'); gradient.addColorStop(1,'#a88dd6');
+            ctx.fillStyle = gradient; ctx.fillRect(0,0,400,400);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 24px "Noto Sans TC"'; ctx.textAlign = 'center';
+            ctx.fillText('示範結果',200,180); ctx.font = '16px "Noto Sans TC"';
+            ctx.fillText('這是生成圖片的預覽',200,220); ctx.fillText('實際功能需在完整環境中使用',200,250);
+            const dataUrl = canvas.toDataURL('image/png');
+            resultImageData = dataUrl.split(',')[1]; resultImage.src = dataUrl; resultCard.classList.add('visible');
+        }
 
-  const link = document.createElement('a');
-  link.href = resultImage.src;
-  link.download = 'bg-generator-' + Date.now() + '.png';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-});
-</script>
-
+        downloadBtn.addEventListener('click', () => {
+            if (!resultImage.src) return;
+            const link = document.createElement('a'); link.href = resultImage.src;
+            link.download = 'bg-generator-'+Date.now()+'.png';
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        });
+    </script>
 </body>
 </html>
