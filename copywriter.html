@@ -1,371 +1,387 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>文案小幫手 — 笙闆的AI工具箱</title>
-<meta name="description" content="AI 文案優化工具，讓你的文字更有溫度">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#fafbfd;
-  --surface:#ffffff;
-  --border:rgba(0,0,0,0.08);
-  --border-hover:rgba(0,0,0,0.15);
-  --primary:#4a8fd4;
-  --primary-hover:#3a7cc6;
-  --primary-dim:rgba(74,143,212,0.08);
-  --gold:#b8963e;
-  --gold-dim:rgba(184,150,62,0.08);
-  --text:#1a2030;
-  --text-muted:rgba(26,32,48,0.5);
-  --text-dim:rgba(26,32,48,0.3);
-  --radius:16px;
-  --ease:cubic-bezier(.22,1,.36,1);
-}
-html{scroll-behavior:smooth}
-body{
-  font-family:'Inter','Noto Sans TC',sans-serif;
-  background:var(--bg);color:var(--text);
-  min-height:100vh;-webkit-font-smoothing:antialiased;
-}
-::selection{background:rgba(74,143,212,0.15)}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文案小幫手 — 笙闆的AI工具箱</title>
+    <meta name="description" content="AI 文案優化工具，讓你的文字更有溫度">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg:#f8f9fc;
+            --surface:rgba(255,255,255,0.72);
+            --surface-solid:#ffffff;
+            --border:rgba(0,0,0,0.06);
+            --border-hover:rgba(0,0,0,0.12);
+            --primary:#4a7ff7;
+            --primary-hover:#3b6de0;
+            --primary-soft:rgba(74,127,247,0.08);
+            --gold:#c4993c;
+            --gold-soft:rgba(196,153,60,0.07);
+            --text:#111827;
+            --text-secondary:rgba(17,24,39,0.55);
+            --text-tertiary:rgba(17,24,39,0.3);
+            --radius:20px;
+            --radius-sm:14px;
+            --ease:cubic-bezier(.22,1,.36,1);
+            --blur:saturate(180%) blur(20px);
+        }
+        html{scroll-behavior:smooth}
+        body{
+            font-family:'Inter','Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif;
+            background:var(--bg);color:var(--text);
+            min-height:100vh;-webkit-font-smoothing:antialiased;
+            overflow-x:hidden;
+        }
+        ::selection{background:rgba(74,127,247,0.12)}
+        .ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+        .orb{position:absolute;border-radius:50%;filter:blur(100px);will-change:transform;opacity:0.7}
+        .orb-1{width:50vw;height:50vw;top:-20%;left:-15%;background:radial-gradient(circle,rgba(74,127,247,0.06),transparent 60%);animation:float1 30s ease-in-out infinite}
+        .orb-2{width:40vw;height:40vw;bottom:-15%;right:-12%;background:radial-gradient(circle,rgba(196,153,60,0.04),transparent 60%);animation:float2 24s ease-in-out infinite}
+        @keyframes float1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,30px) scale(1.05)}}
+        @keyframes float2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-30px,-40px) scale(1.03)}}
+        .noise{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.03;
+            background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+        .container{max-width:680px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
 
-.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-.orb{position:absolute;border-radius:50%;filter:blur(120px);will-change:transform}
-.orb-1{width:45vw;height:45vw;top:-15%;left:-10%;background:radial-gradient(circle,rgba(74,143,212,0.04),transparent 65%);animation:d1 28s ease-in-out infinite}
-.orb-2{width:35vw;height:35vw;bottom:-10%;right:-8%;background:radial-gradient(circle,rgba(184,150,62,0.03),transparent 65%);animation:d2 22s ease-in-out infinite}
-@keyframes d1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,20px)}}
-@keyframes d2{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,-30px)}}
+        /* ===== Back Link ===== */
+        .back-link{
+            display:inline-flex;align-items:center;gap:6px;
+            padding:16px 0 0;font-size:0.78rem;
+            color:var(--text-tertiary);text-decoration:none;
+            transition:all 0.25s var(--ease);font-weight:400;
+        }
+        .back-link:hover{color:var(--primary);gap:8px}
+        .back-link svg{width:14px;height:14px;transition:transform 0.25s var(--ease)}
+        .back-link:hover svg{transform:translateX(-2px)}
 
-.container{max-width:680px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+        /* ===== Header ===== */
+        .header{padding:16px 0 28px;text-align:center}
+        .header h1{
+            font-size:1.6rem;font-weight:700;
+            font-family:'Noto Sans TC',sans-serif;
+            margin-bottom:8px;letter-spacing:-0.3px;
+        }
+        .header p{
+            font-size:0.84rem;color:var(--text-secondary);
+            line-height:1.7;font-weight:300;
+        }
 
-/* ===== Back Link ===== */
-.back-link{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:10px 0 0;font-size:0.8rem;
-  color:var(--text-muted);text-decoration:none;
-  transition:color 0.2s;
-}
-.back-link:hover{color:var(--primary)}
+        /* ===== Mode Selector ===== */
+        .modes{
+            display:flex;gap:6px;justify-content:center;
+            margin-bottom:24px;flex-wrap:wrap;
+        }
+        .mode-btn{
+            padding:9px 20px;border-radius:100px;
+            font-size:0.8rem;font-weight:500;
+            font-family:'Noto Sans TC',sans-serif;
+            background:var(--surface);
+            backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+            border:1px solid var(--border);
+            color:var(--text-secondary);cursor:pointer;
+            transition:all 0.3s var(--ease);
+            letter-spacing:0.2px;user-select:none;
+        }
+        .mode-btn:hover{border-color:var(--border-hover);color:var(--text)}
+        .mode-btn.active{
+            background:var(--primary-soft);
+            border-color:rgba(74,127,247,0.2);
+            color:var(--primary);font-weight:600;
+        }
 
-/* ===== Header ===== */
-.header{padding:20px 0 28px;text-align:center}
-.header h1{
-  font-size:1.5rem;font-weight:700;
-  font-family:'Noto Sans TC',sans-serif;
-  color:var(--text);letter-spacing:1px;
-  margin-bottom:6px;
-}
-.header h1 span{
-  background:linear-gradient(135deg,var(--primary),var(--gold));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
-.header p{
-  font-size:0.82rem;color:var(--text-muted);
-  line-height:1.7;font-weight:300;
-}
+        /* ===== Main Card ===== */
+        .main-card{
+            background:var(--surface);
+            backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+            border:1px solid var(--border);
+            border-radius:var(--radius);
+            padding:28px;
+            box-shadow:0 1px 3px rgba(0,0,0,0.02);
+            margin-bottom:14px;
+            animation:fadeUp 0.5s var(--ease);
+        }
+        @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
-/* ===== Mode Selector ===== */
-.modes{
-  display:flex;gap:8px;justify-content:center;
-  margin-bottom:24px;flex-wrap:wrap;
-}
-.mode-btn{
-  padding:10px 20px;border-radius:100px;
-  font-size:0.82rem;font-weight:500;
-  font-family:'Noto Sans TC',sans-serif;
-  background:var(--surface);
-  border:1px solid var(--border);
-  color:var(--text-muted);cursor:pointer;
-  transition:all 0.3s var(--ease);
-  letter-spacing:0.3px;user-select:none;
-}
-.mode-btn:hover{border-color:var(--border-hover);color:var(--text)}
-.mode-btn.active{
-  background:var(--primary-dim);
-  border-color:rgba(74,143,212,0.3);
-  color:var(--primary);font-weight:600;
-}
+        .input-label{
+            font-size:0.72rem;color:var(--text-tertiary);
+            letter-spacing:1.2px;text-transform:uppercase;
+            margin-bottom:10px;display:block;font-weight:500;
+        }
+        .input-area{
+            width:100%;min-height:160px;max-height:400px;
+            padding:16px 18px;border-radius:var(--radius-sm);
+            border:1px solid var(--border);
+            background:rgba(248,249,252,0.6);color:var(--text);
+            font-size:0.92rem;line-height:1.75;
+            font-family:'Noto Sans TC','Inter',sans-serif;
+            resize:vertical;outline:none;
+            transition:border-color 0.3s,box-shadow 0.3s;
+        }
+        .input-area:focus{
+            border-color:rgba(74,127,247,0.35);
+            box-shadow:0 0 0 4px rgba(74,127,247,0.06);
+        }
+        .input-area::placeholder{color:var(--text-tertiary);font-weight:300}
 
-/* ===== Main Card ===== */
-.main-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:28px;
-  box-shadow:0 2px 12px rgba(0,0,0,0.03);
-  margin-bottom:16px;
-}
+        .tone-row{display:none;gap:6px;margin-top:14px;flex-wrap:wrap}
+        .tone-row.visible{display:flex}
+        .tone-chip{
+            padding:6px 14px;border-radius:100px;
+            font-size:0.73rem;font-weight:500;
+            font-family:'Noto Sans TC',sans-serif;
+            background:rgba(248,249,252,0.6);border:1px solid var(--border);
+            color:var(--text-secondary);cursor:pointer;
+            transition:all 0.25s var(--ease);
+        }
+        .tone-chip:hover{border-color:var(--border-hover);color:var(--text)}
+        .tone-chip.active{
+            background:var(--gold-soft);
+            border-color:rgba(196,153,60,0.2);
+            color:var(--gold);
+        }
 
-.input-label{
-  font-size:0.75rem;color:var(--text-dim);
-  letter-spacing:1px;text-transform:uppercase;
-  margin-bottom:10px;display:block;font-weight:500;
-}
-.input-area{
-  width:100%;min-height:160px;max-height:400px;
-  padding:16px;border-radius:12px;
-  border:1px solid var(--border);
-  background:var(--bg);color:var(--text);
-  font-size:0.95rem;line-height:1.7;
-  font-family:'Noto Sans TC','Inter',sans-serif;
-  resize:vertical;outline:none;
-  transition:border-color 0.3s;
-}
-.input-area:focus{border-color:rgba(74,143,212,0.4)}
-.input-area::placeholder{color:var(--text-dim);font-weight:300}
+        .char-count{text-align:right;font-size:0.68rem;color:var(--text-tertiary);margin-top:8px;font-weight:300}
+        .action-row{margin-top:22px;text-align:center}
 
-.tone-row{display:none;gap:6px;margin-top:14px;flex-wrap:wrap}
-.tone-row.visible{display:flex}
-.tone-chip{
-  padding:6px 14px;border-radius:100px;
-  font-size:0.75rem;font-weight:500;
-  font-family:'Noto Sans TC',sans-serif;
-  background:var(--bg);border:1px solid var(--border);
-  color:var(--text-muted);cursor:pointer;
-  transition:all 0.25s var(--ease);
-}
-.tone-chip:hover{border-color:var(--border-hover);color:var(--text)}
-.tone-chip.active{
-  background:var(--gold-dim);
-  border-color:rgba(184,150,62,0.3);
-  color:var(--gold);
-}
+        .btn-go{
+            padding:13px 52px;border-radius:100px;
+            font-size:0.92rem;font-weight:600;
+            font-family:'Noto Sans TC',sans-serif;
+            background:var(--primary);
+            color:#fff;border:none;cursor:pointer;
+            transition:all 0.3s var(--ease);
+            letter-spacing:0.5px;
+            box-shadow:0 2px 12px rgba(74,127,247,0.2);
+        }
+        .btn-go:hover{
+            background:var(--primary-hover);
+            transform:translateY(-2px);
+            box-shadow:0 6px 24px rgba(74,127,247,0.25);
+        }
+        .btn-go:active{transform:translateY(0)}
+        .btn-go:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none}
+        .btn-go .spinner{
+            display:none;width:16px;height:16px;
+            border:2px solid rgba(255,255,255,0.3);
+            border-top-color:#fff;border-radius:50%;
+            animation:spin 0.7s linear infinite;
+            margin-right:8px;vertical-align:middle;
+        }
+        .btn-go.loading .spinner{display:inline-block}
+        .btn-go.loading .btn-text{opacity:0.7}
+        @keyframes spin{to{transform:rotate(360deg)}}
 
-.char-count{text-align:right;font-size:0.7rem;color:var(--text-dim);margin-top:8px}
+        /* ===== Result ===== */
+        .result-card{
+            background:var(--surface);
+            backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+            border:1px solid var(--border);
+            border-radius:var(--radius);
+            padding:28px;
+            box-shadow:0 1px 3px rgba(0,0,0,0.02);
+            margin-bottom:20px;
+            display:none;
+            animation:fadeUp 0.5s var(--ease);
+        }
+        .result-card.visible{display:block}
+        .result-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+        .result-label{font-size:0.72rem;color:var(--text-tertiary);letter-spacing:1.2px;text-transform:uppercase;font-weight:500}
+        .btn-copy{
+            padding:6px 16px;border-radius:100px;
+            font-size:0.73rem;font-weight:500;
+            font-family:'Noto Sans TC',sans-serif;
+            background:var(--primary-soft);border:1px solid rgba(74,127,247,0.12);
+            color:var(--primary);cursor:pointer;
+            transition:all 0.25s var(--ease);
+        }
+        .btn-copy:hover{background:rgba(74,127,247,0.12)}
+        .btn-copy.copied{background:var(--gold-soft);border-color:rgba(196,153,60,0.15);color:var(--gold)}
+        .result-text{
+            font-size:0.92rem;line-height:1.85;
+            color:var(--text);white-space:pre-wrap;
+            font-family:'Noto Sans TC','Inter',sans-serif;
+        }
 
-.action-row{margin-top:20px;text-align:center}
-.btn-go{
-  padding:14px 48px;border-radius:100px;
-  font-size:0.95rem;font-weight:600;
-  font-family:'Noto Sans TC',sans-serif;
-  background:linear-gradient(135deg,var(--primary),var(--primary-hover));
-  color:#fff;border:none;cursor:pointer;
-  transition:all 0.3s var(--ease);
-  letter-spacing:1px;
-  box-shadow:0 4px 16px rgba(74,143,212,0.2);
-}
-.btn-go:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(74,143,212,0.3)}
-.btn-go:active{transform:translateY(0)}
-.btn-go:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
-.btn-go .spinner{
-  display:none;width:18px;height:18px;
-  border:2px solid rgba(255,255,255,0.3);
-  border-top-color:#fff;border-radius:50%;
-  animation:spin 0.7s linear infinite;
-  margin-right:8px;vertical-align:middle;
-}
-.btn-go.loading .spinner{display:inline-block}
-.btn-go.loading .btn-text{opacity:0.7}
-@keyframes spin{to{transform:rotate(360deg)}}
+        footer{text-align:center;padding:28px 0 40px}
+        footer p{font-size:0.68rem;color:var(--text-tertiary);letter-spacing:1.5px;font-weight:300}
 
-/* ===== Result ===== */
-.result-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:28px;
-  box-shadow:0 2px 12px rgba(0,0,0,0.03);
-  margin-bottom:24px;
-  display:none;
-  animation:fadeUp 0.4s var(--ease);
-}
-.result-card.visible{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-
-.result-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.result-label{font-size:0.75rem;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;font-weight:500}
-.btn-copy{
-  padding:6px 16px;border-radius:100px;
-  font-size:0.75rem;font-weight:500;
-  font-family:'Noto Sans TC',sans-serif;
-  background:var(--primary-dim);border:1px solid rgba(74,143,212,0.2);
-  color:var(--primary);cursor:pointer;
-  transition:all 0.25s var(--ease);
-}
-.btn-copy:hover{background:rgba(74,143,212,0.15)}
-.btn-copy.copied{background:rgba(184,150,62,0.1);border-color:rgba(184,150,62,0.2);color:var(--gold)}
-
-.result-text{
-  font-size:0.95rem;line-height:1.8;
-  color:var(--text);white-space:pre-wrap;
-  font-family:'Noto Sans TC','Inter',sans-serif;
-}
-
-footer{text-align:center;padding:32px 0}
-footer p{font-size:0.7rem;color:var(--text-dim);letter-spacing:1px}
-
-@media(max-width:640px){
-  .container{padding:0 16px}
-  .header{padding:16px 0 20px}
-  .header h1{font-size:1.3rem}
-  .main-card,.result-card{padding:20px}
-  .modes{gap:6px}
-  .mode-btn{padding:8px 14px;font-size:0.78rem}
-  .input-area{min-height:120px;font-size:0.9rem}
-  .btn-go{padding:12px 36px;font-size:0.9rem}
-}
-</style>
+        @media(max-width:640px){
+            .container{padding:0 16px}
+            .header{padding:12px 0 20px}
+            .header h1{font-size:1.35rem}
+            .main-card,.result-card{padding:22px}
+            .modes{gap:5px}
+            .mode-btn{padding:8px 14px;font-size:0.76rem}
+            .input-area{min-height:120px;font-size:0.88rem}
+            .btn-go{padding:12px 40px;font-size:0.88rem}
+        }
+    </style>
 </head>
 <body>
+    <div class="ambient">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+    <div class="noise"></div>
 
-<div class="ambient">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-</div>
+    <div class="container">
+        <a class="back-link" href="index.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            回到工具箱
+        </a>
 
-<div class="container">
-  <a class="back-link" href="index.html">&#8249; 回到工具箱</a>
+        <header class="header">
+            <h1>文案小幫手</h1>
+            <p>貼上你的文字，一鍵讓它更好讀、更有溫度。</p>
+        </header>
 
-  <header class="header">
-    <h1><span>文案小幫手</span></h1>
-    <p>貼上你的文字，一鍵讓它更好讀、更有溫度。</p>
-  </header>
+        <div class="modes">
+            <button class="mode-btn active" data-mode="gen" onclick="setMode('gen')">文案生成</button>
+            <button class="mode-btn" data-mode="tone" onclick="setMode('tone')">語氣改寫</button>
+            <button class="mode-btn" data-mode="slim" onclick="setMode('slim')">文案精簡</button>
+            <button class="mode-btn" data-mode="deai" onclick="setMode('deai')">去 AI 味</button>
+        </div>
 
-  <div class="modes">
-    <button class="mode-btn active" data-mode="gen" onclick="setMode('gen')">文案生成</button>
-    <button class="mode-btn" data-mode="tone" onclick="setMode('tone')">語氣改寫</button>
-    <button class="mode-btn" data-mode="slim" onclick="setMode('slim')">文案精簡</button>
-    <button class="mode-btn" data-mode="deai" onclick="setMode('deai')">去 AI 味</button>
-  </div>
+        <div class="main-card">
+            <label class="input-label" id="inputLabel">描述你想要的文案主題</label>
+            <textarea class="input-area" id="inputText" placeholder="例如：幫我寫一段母親節感謝媽媽的話，大概 100 字左右..." oninput="updateCount()"></textarea>
+            <div class="tone-row" id="toneRow">
+                <button class="tone-chip active" data-tone="warm" onclick="setTone(this)">溫暖親切</button>
+                <button class="tone-chip" data-tone="formal" onclick="setTone(this)">正式專業</button>
+                <button class="tone-chip" data-tone="humor" onclick="setTone(this)">輕鬆幽默</button>
+                <button class="tone-chip" data-tone="literary" onclick="setTone(this)">文青質感</button>
+            </div>
+            <div class="char-count" id="charCount"></div>
+            <div class="action-row">
+                <button class="btn-go" id="btnGo" onclick="doProcess()">
+                    <span class="spinner"></span>
+                    <span class="btn-text">生成文案</span>
+                </button>
+            </div>
+        </div>
 
-  <div class="main-card">
-    <label class="input-label" id="inputLabel">描述你想要的文案主題</label>
-    <textarea class="input-area" id="inputText" placeholder="例如：幫我寫一段母親節感謝媽媽的話，大概 100 字左右..." oninput="updateCount()"></textarea>
+        <div class="result-card" id="resultCard">
+            <div class="result-header">
+                <span class="result-label">優化結果</span>
+                <button class="btn-copy" id="btnCopy" onclick="copyResult()">複製文案</button>
+            </div>
+            <div class="result-text" id="resultText"></div>
+        </div>
 
-    <div class="tone-row" id="toneRow">
-      <button class="tone-chip active" data-tone="warm" onclick="setTone(this)">溫暖親切</button>
-      <button class="tone-chip" data-tone="formal" onclick="setTone(this)">正式專業</button>
-      <button class="tone-chip" data-tone="humor" onclick="setTone(this)">輕鬆幽默</button>
-      <button class="tone-chip" data-tone="literary" onclick="setTone(this)">文青質感</button>
+        <footer>
+            <p>笙闆的 AI 工具箱 &middot; Powered by REYWAY</p>
+        </footer>
     </div>
 
-    <div class="char-count" id="charCount"></div>
+    <script>
+        let currentMode = 'gen';
+        let currentTone = 'warm';
 
-    <div class="action-row">
-      <button class="btn-go" id="btnGo" onclick="doProcess()">
-        <span class="spinner"></span>
-        <span class="btn-text">生成文案</span>
-      </button>
-    </div>
-  </div>
+        const modeConfig = {
+            deai: { label: '貼上要優化的文案', placeholder: '把 AI 生成的文字貼在這裡，我幫你改得更自然...', btnText: '去 AI 味' },
+            tone: { label: '貼上要改寫的文案', placeholder: '把想換語氣的文字貼在這裡...', btnText: '改寫語氣' },
+            slim: { label: '貼上要精簡的文案', placeholder: '把太長的文字貼在這裡，我幫你濃縮...', btnText: '一鍵精簡' },
+            gen:  { label: '描述你想要的文案主題', placeholder: '例如：幫我寫一段母親節感謝媽媽的話，大概 100 字左右...', btnText: '生成文案' },
+        };
 
-  <div class="result-card" id="resultCard">
-    <div class="result-header">
-      <span class="result-label">優化結果</span>
-      <button class="btn-copy" id="btnCopy" onclick="copyResult()">複製文案</button>
-    </div>
-    <div class="result-text" id="resultText"></div>
-  </div>
+        const toneLabels = { warm:'溫暖親切', formal:'正式專業', humor:'輕鬆幽默', literary:'文青質感' };
 
-  <footer>
-    <p>笙闆的 AI 工具箱 &middot; Powered by REYWAY</p>
-  </footer>
-</div>
+        function setMode(mode) {
+            currentMode = mode;
+            const cfg = modeConfig[mode];
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
+            document.getElementById('inputLabel').textContent = cfg.label;
+            document.getElementById('inputText').placeholder = cfg.placeholder;
+            document.getElementById('btnGo').querySelector('.btn-text').textContent = cfg.btnText;
+            document.getElementById('toneRow').classList.toggle('visible', mode === 'tone');
+            document.getElementById('resultCard').classList.remove('visible');
+        }
 
-<script>
-let currentMode = 'gen';
-let currentTone = 'warm';
+        function setTone(el) {
+            currentTone = el.dataset.tone;
+            document.querySelectorAll('.tone-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+        }
 
-const modeConfig = {
-  deai:  { label: '貼上要優化的文案', placeholder: '把 AI 生成的文字貼在這裡，我幫你改得更自然...', btnText: '去 AI 味' },
-  tone:  { label: '貼上要改寫的文案', placeholder: '把想換語氣的文字貼在這裡...', btnText: '改寫語氣' },
-  slim:  { label: '貼上要精簡的文案', placeholder: '把太長的文字貼在這裡，我幫你濃縮...', btnText: '一鍵精簡' },
-  gen:   { label: '描述你想要的文案主題', placeholder: '例如：幫我寫一段母親節感謝媽媽的話，大概 100 字左右...', btnText: '生成文案' },
-};
-const toneLabels = { warm:'溫暖親切', formal:'正式專業', humor:'輕鬆幽默', literary:'文青質感' };
+        function updateCount() {
+            const len = document.getElementById('inputText').value.length;
+            document.getElementById('charCount').textContent = len > 0 ? `${len} 字` : '';
+        }
 
-function setMode(mode) {
-  currentMode = mode;
-  const cfg = modeConfig[mode];
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
-  document.getElementById('inputLabel').textContent = cfg.label;
-  document.getElementById('inputText').placeholder = cfg.placeholder;
-  document.getElementById('btnGo').querySelector('.btn-text').textContent = cfg.btnText;
-  document.getElementById('toneRow').classList.toggle('visible', mode === 'tone');
-  document.getElementById('resultCard').classList.remove('visible');
-}
+        async function doProcess() {
+            const input = document.getElementById('inputText').value.trim();
+            if (!input) { document.getElementById('inputText').focus(); return; }
+            const btn = document.getElementById('btnGo');
+            btn.classList.add('loading'); btn.disabled = true;
+            try {
+                const result = await callAPI(currentMode, input, currentTone);
+                document.getElementById('resultText').textContent = result;
+                document.getElementById('resultCard').classList.add('visible');
+                document.getElementById('btnCopy').textContent = '複製文案';
+                document.getElementById('btnCopy').classList.remove('copied');
+            } catch(e) {
+                document.getElementById('resultText').textContent = '抱歉，處理時發甠錯誤，請再試一次。';
+                document.getElementById('resultCard').classList.add('visible');
+            }
+            btn.classList.remove('loading'); btn.disabled = false;
+        }
 
-function setTone(el) {
-  currentTone = el.dataset.tone;
-  document.querySelectorAll('.tone-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-}
+        async function callAPI(mode, text, tone) {
+            let systemPrompt = '';
+            switch(mode) {
+                case 'deai':
+                    systemPrompt = `你是一位資深文案編輯。請將以下文字去除「AI 味」，讓它譠起來更像真人寫的。\n規則：\n1. 移除過於工整的排比句和對仗\n2. 減少「此外」「總之」「值得一提的是」等 AI 常用連接詞\n3. 加入口語化的轉折和節奏感\n4. 保留原文的核心意思，不要加治添醋\n5. 不要使用 emoji\n6. 語氣自然就好\n只輸出修改後的文案，不要加任何說明。`;
+                    break;
+                case 'tone':
+                    const ti = { warm:'語氣溫暖、親切、像跟好朋友說話。', formal:'語氣正式、專業、有條理。', humor:'語氣輕鬆幽默，帶趣味。', literary:'語氣有質感、有畫面感，用字精煉。' };
+                    systemPrompt = `你是一位資深文案編輯。請將以下文字改寫成指定語氣。\n目標語氣：${ti[tone]}\n規則：保留核心意思，不加油添醋，不用 emoji。\n只輸出修改後的文案。`;
+                    break;
+                case 'slim':
+                    systemPrompt = `你是一位資深文案編輯。請將以下文字精簡濃縮，字數減少 30-50%，保留核心資訊，不用 emoji。\n只輸出精簡後的文案。`;
+                    break;
+                case 'gen':
+                    systemPrompt = `你是一位資深文案寫手。請根據描述撰寫一段完整文案。文案要有溫度有節奏，不用 AI 味排比句，口語化但有質感，不用 emoji。\n只輸出文案本身。`;
+                    break;
+            }
 
-function updateCount() {
-  const len = document.getElementById('inputText').value.length;
-  document.getElementById('charCount').textContent = len > 0 ? `${len} 字` : '';
-}
+            const host = window.location.hostname;
+            if (host === 'tools.reyway.com') {
+                const r = await fetch('/api/copywriter', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({mode,text,tone,systemPrompt})
+                });
+                if (!r.ok) throw new Error('API error');
+                const d = await r.json();
+                return d.result || d.text || '處理完成。';
+            }
 
-async function doProcess() {
-  const input = document.getElementById('inputText').value.trim();
-  if (!input) { document.getElementById('inputText').focus(); return; }
-  const btn = document.getElementById('btnGo');
-  btn.classList.add('loading'); btn.disabled = true;
-  try {
-    const result = await callAPI(currentMode, input, currentTone);
-    document.getElementById('resultText').textContent = result;
-    document.getElementById('resultCard').classList.add('visible');
-    document.getElementById('btnCopy').textContent = '複製文案';
-    document.getElementById('btnCopy').classList.remove('copied');
-  } catch(e) {
-    document.getElementById('resultText').textContent = '抱歉，處理時發生錯誤，請再試一次。';
-    document.getElementById('resultCard').classList.add('visible');
-  }
-  btn.classList.remove('loading'); btn.disabled = false;
-}
+            // Demo mode
+            await new Promise(r => setTimeout(r, 1200));
+            const demos = {
+                deai: `【Demo 模式】\n\n去 AI 味版本會在這裡顯示。連接 API 後，你的文字會被改寫得更自然。\n\n你的原文（${text.length} 字）已收到。`,
+                tone: `【Demo 模式】\n\n「${toneLabels[tone]}」語氣版本會在這裡顯示。\n\n你的原文（${text.length} 字）已收到。`,
+                slim: `【Demo 模式】\n\n精簡版本會在這裡顯示，目標減少 30-50% 字數。\n\n你的原文（${text.length} 字）已收到。`,
+                gen: `【Demo 模式】\n\n根據「${text}」主題的文案會在這裡生成。`
+            };
+            return demos[mode] || '處理完成。';
+        }
 
-async function callAPI(mode, text, tone) {
-  let systemPrompt = '';
-  switch(mode) {
-    case 'deai':
-      systemPrompt = `你是一位資深文案編輯。請將以下文字去除「AI 味」，讓它讀起來更像真人寫的。\n規則：\n1. 移除過於工整的排比句和對仗\n2. 減少「此外」「總之」「值得一提的是」等 AI 常用連接詞\n3. 加入口語化的轉折和節奏感\n4. 保留原文的核心意思，不要加油添醋\n5. 不要使用 emoji\n6. 語氣自然就好\n只輸出修改後的文案，不要加任何說明。`;
-      break;
-    case 'tone':
-      const ti = { warm:'語氣溫暖、親切、像跟好朋友說話。', formal:'語氣正式、專業、有條理。', humor:'語氣輕鬆幽默，帶趣味。', literary:'語氣有質感、有畫面感，用字精煉。' };
-      systemPrompt = `你是一位資深文案編輯。請將以下文字改寫成指定語氣。\n目標語氣：${ti[tone]}\n規則：保留核心意思，不加油添醋，不用 emoji。\n只輸出修改後的文案。`;
-      break;
-    case 'slim':
-      systemPrompt = `你是一位資深文案編輯。請將以下文字精簡濃縮，字數減少 30-50%，保留核心資訊，不用 emoji。\n只輸出精簠後的文案。`;
-      break;
-    case 'gen':
-      systemPrompt = `你是一位資深文案寫手。請根據描述撰寫一段完整文案。文案要有溫度有節奏，不用 AI 味排比句，口語化但有質感，不用 emoji。\n只輸出文案本身。`;
-      break;
-  }
-  const host = window.location.hostname;
-  if (host === 'tools.reyway.com') {
-    const r = await fetch('/api/copywriter', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mode,text,tone,systemPrompt}) });
-    if (!r.ok) throw new Error('API error');
-    const d = await r.json();
-    return d.result || d.text || '處理完成。';
-  }
-  // Demo mode
-  await new Promise(r => setTimeout(r, 1200));
-  const demos = {
-    deai: `【Demo 模式】\n\n去 AI 味版本會在這裡顯示。連接 API 後，你的文字會被改寫得更自然。\n\n你的原文（${text.length} 字）已收到。`,
-    tone: `【Demo 模式】\n\n「${toneLabels[tone]}」語氣版本會在這裡顯示。\n\n你的原文（${text.length} 字）已收到。`,
-    slim: `【Demo 模式】\n\n精簡版本會在這裡顯示，目標減少 30-50% 字數。\n\n你的原文（${text.length} 字）已收到。`,
-    gen:  `【Demo 模式】\n\n根據「${text}」主題的文案會在這裡生成。`
-  };
-  return demos[mode] || '處理完成。';
-}
+        function copyResult() {
+            navigator.clipboard.writeText(document.getElementById('resultText').textContent).then(() => {
+                const btn = document.getElementById('btnCopy');
+                btn.textContent = '已複製'; btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = '複製文案'; btn.classList.remove('copied'); }, 2000);
+            });
+        }
 
-function copyResult() {
-  navigator.clipboard.writeText(document.getElementById('resultText').textContent).then(() => {
-    const btn = document.getElementById('btnCopy');
-    btn.textContent = '已複製'; btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = '複製文案'; btn.classList.remove('copied'); }, 2000);
-  });
-}
-
-document.getElementById('inputText').addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') doProcess();
-});
-</script>
-
+        document.getElementById('inputText').addEventListener('keydown', e => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') doProcess();
+        });
+    </script>
 </body>
 </html>
