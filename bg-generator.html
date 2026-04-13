@@ -724,14 +724,51 @@
         });
         fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFileSelect(e.target.files[0]); });
 
-        function handleFileSelect(file) {
+        let compressedBase64 = null;
+        let compressedMime = 'image/jpeg';
+
+        function compressImage(file, maxSize = 1536, quality = 0.85) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    let { width, height } = img;
+                    if (width > maxSize || height > maxSize) {
+                        const ratio = Math.min(maxSize / width, maxSize / height);
+                        width = Math.round(width * ratio);
+                        height = Math.round(height * ratio);
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    resolve({ dataUrl, base64: dataUrl.split(',')[1], mime: 'image/jpeg' });
+                };
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+
+        async function handleFileSelect(file) {
             if (!file.type.startsWith('image/')) { alert('請選擇圖片檔案'); return; }
-            if (file.size > 10 * 1024 * 1024) { alert('檔案過大，請選擇小於 10MB 的圖片'); return; }
+            if (file.size > 20 * 1024 * 1024) { alert('檔案過大，請選擇小於 20MB 的圖片'); return; }
             selectedFile = file;
             uploadZone.style.display = 'none';
-            const reader = new FileReader();
-            reader.onload = (e) => { previewImg.src = e.target.result; previewArea.classList.add('visible'); generateBtn.disabled = false; };
-            reader.readAsDataURL(file);
+            previewArea.classList.add('visible');
+            generateBtn.disabled = true;
+            generateBtn.textContent = '處理圖片中…';
+            try {
+                const r = await compressImage(file);
+                compressedBase64 = r.base64; compressedMime = r.mime;
+                previewImg.src = r.dataUrl;
+                generateBtn.disabled = false;
+                generateBtn.textContent = '生成情境圖';
+            } catch (e) {
+                alert('圖片處理失敗，請換一張試試');
+                removeBtn.click();
+            }
         }
 
         removeBtn.addEventListener('click', () => {
@@ -761,13 +798,9 @@
             generateBtn.textContent = '生成中，請稍候…';
 
             try {
-                const base64 = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(selectedFile);
-                });
-                const mimeType = selectedFile.type;
+                if (!compressedBase64) throw new Error('圖片尚未處理完成，請稍候再試');
+                const base64 = compressedBase64;
+                const mimeType = compressedMime;
 
                 if (isDemoMode) {
                     showDemoResult();
@@ -783,8 +816,14 @@
                         })
                     });
                     if (!response.ok) {
-                        const errData = await response.json().catch(() => ({}));
-                        throw new Error(errData.error || 'API error: ' + response.status);
+                        let msg;
+                        if (response.status === 522 || response.status === 524) {
+                            msg = '伺服器處理逾時（圖片可能太複雜或模型忙碌），請稍候再試或換一張較簡單的圖';
+                        } else {
+                            const errData = await response.json().catch(() => ({}));
+                            msg = errData.error || 'API error: ' + response.status;
+                        }
+                        throw new Error(msg);
                     }
                     const data = await response.json();
                     if (data.error) throw new Error(data.error);

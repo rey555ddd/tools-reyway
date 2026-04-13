@@ -67,33 +67,45 @@ ${bgDescription}
 4. 輸出高品質的正方形構圖圖片`;
 
     // Call Gemini API with image generation capability
-    // gemini-2.0-flash-exp supports responseModalities: IMAGE for native image output
-    const geminiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: prompt },
-                {
-                  inlineData: {
-                    mimeType: mime,
-                    data: base64Data,
-                  },
-                },
-              ],
+    // Abort after 75s so we can return a clean error before Cloudflare drops the connection (522/524)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 75_000);
+
+    let geminiResp: Response;
+    try {
+      geminiResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: prompt },
+                  { inlineData: { mimeType: mime, data: base64Data } },
+                ],
+              },
+            ],
+            generationConfig: {
+              responseModalities: ['TEXT', 'IMAGE'],
+              temperature: 0.4,
             },
-          ],
-          generationConfig: {
-            responseModalities: ['TEXT', 'IMAGE'],
-            temperature: 0.4,
-          },
-        }),
+          }),
+          signal: controller.signal,
+        }
+      );
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ error: '模型回應逾時，請稍後重試或換一張較簡單的圖片' }),
+          { status: 504, headers: { 'Content-Type': 'application/json' } }
+        );
       }
-    );
+      throw err;
+    }
+    clearTimeout(timeoutId);
 
     if (!geminiResp.ok) {
       const errBody = await geminiResp.text();
