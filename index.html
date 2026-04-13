@@ -163,6 +163,115 @@
         }
         .tool-card:hover .tool-arrow{opacity:1;transform:translateX(0);color:var(--primary)}
 
+        /* ===== Dev Badge (開發中) ===== */
+        .dev-badge{
+            display:inline-flex;align-items:center;gap:4px;
+            background:rgba(218,165,32,0.12);color:#b8851a;
+            border:1px solid rgba(218,165,32,0.3);
+            padding:2px 8px;border-radius:999px;
+            font-size:11px;font-weight:600;
+            margin-left:6px;letter-spacing:0.3px;
+            white-space:nowrap;
+        }
+        .tool-card.is-dev{opacity:0.78}
+        .tool-card.is-dev:hover{opacity:1}
+
+        /* ===== Feedback Button ===== */
+        .feedback-btn{
+            display:inline-flex;align-items:center;gap:6px;
+            background:white;border:1px solid var(--border);
+            color:var(--text);font-family:inherit;font-size:0.85rem;
+            font-weight:500;padding:9px 18px;border-radius:999px;
+            cursor:pointer;margin-top:18px;
+            transition:all 0.25s var(--ease);
+            box-shadow:0 1px 2px rgba(0,0,0,0.03);
+        }
+        .feedback-btn:hover{
+            border-color:var(--primary);color:var(--primary);
+            transform:translateY(-1px);
+            box-shadow:0 6px 16px rgba(74,127,247,0.15);
+        }
+        .feedback-btn .icon{font-size:1rem}
+
+        /* ===== Modal ===== */
+        .modal-overlay{
+            position:fixed;inset:0;z-index:100;
+            background:rgba(20,24,40,0.5);
+            backdrop-filter:blur(6px);
+            display:none;align-items:center;justify-content:center;
+            padding:20px;
+        }
+        .modal-overlay.visible{display:flex}
+        .modal{
+            background:white;border-radius:20px;
+            max-width:560px;width:100%;max-height:90vh;
+            overflow-y:auto;padding:28px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.2);
+        }
+        .modal h3{
+            font-size:1.3rem;margin-bottom:6px;
+            font-family:'Noto Sans TC',sans-serif;
+        }
+        .modal .modal-sub{
+            color:var(--text-secondary);font-size:0.88rem;
+            margin-bottom:20px;line-height:1.6;
+        }
+        .modal .form-section{margin-bottom:20px}
+        .modal label.field-label{
+            display:block;font-size:0.85rem;font-weight:600;
+            color:var(--text);margin-bottom:10px;
+        }
+        .modal label.field-label .opt{
+            color:var(--text-tertiary);font-weight:400;font-size:0.78rem;margin-left:4px;
+        }
+        .check-grid{
+            display:grid;grid-template-columns:1fr 1fr;gap:8px;
+        }
+        @media(max-width:480px){.check-grid{grid-template-columns:1fr}}
+        .check-item{
+            display:flex;align-items:flex-start;gap:8px;
+            padding:10px 12px;background:#f7f8fc;
+            border:1.5px solid transparent;border-radius:10px;
+            cursor:pointer;font-size:0.85rem;
+            transition:all 0.2s;
+        }
+        .check-item input{margin-top:2px;flex-shrink:0;cursor:pointer}
+        .check-item:hover{background:#eef2ff}
+        .check-item:has(input:checked){
+            background:rgba(74,127,247,0.08);
+            border-color:var(--primary);
+            color:var(--primary);
+        }
+        .modal textarea, .modal input[type=text], .modal input[type=email]{
+            width:100%;padding:11px 14px;
+            border:1.5px solid var(--border);border-radius:10px;
+            font-family:inherit;font-size:0.9rem;
+            background:white;
+            transition:border-color 0.2s;
+        }
+        .modal textarea{min-height:80px;resize:vertical}
+        .modal textarea:focus, .modal input:focus{outline:none;border-color:var(--primary)}
+        .modal-actions{display:flex;gap:10px;margin-top:8px}
+        .modal-actions button{
+            flex:1;padding:12px;border-radius:10px;
+            font-family:inherit;font-size:0.95rem;font-weight:600;
+            cursor:pointer;border:none;transition:all 0.2s;
+        }
+        .btn-cancel{
+            background:white;color:var(--text-secondary);
+            border:1.5px solid var(--border) !important;
+        }
+        .btn-cancel:hover{border-color:var(--text-tertiary) !important}
+        .btn-submit{background:var(--primary);color:white}
+        .btn-submit:hover{background:#3666e0}
+        .btn-submit:disabled{background:var(--text-tertiary);cursor:not-allowed}
+        .modal-success{
+            text-align:center;padding:30px 20px;
+        }
+        .modal-success .big{font-size:3rem;margin-bottom:10px}
+        .modal-success h3{color:var(--green);margin-bottom:8px}
+        .modal-success p{color:var(--text-secondary);font-size:0.9rem}
+
         /* ===== Footer ===== */
         footer{text-align:center;padding:0 0 48px}
         footer p{font-size:0.68rem;color:var(--text-tertiary);letter-spacing:1.5px;font-weight:300}
@@ -195,6 +304,10 @@
             <div class="header-badge">REYWAY TOOLS</div>
             <h1><span>笙闆的 AI 工具箱</span></h1>
             <p>歡迎親朋好友自由取用，有任何功能需求也可以留言給我。</p>
+            <button class="feedback-btn" id="open-feedback">
+                <span class="icon">💬</span>
+                <span>我想要 ___ 工具（留言給笙哥）</span>
+            </button>
         </header>
 
         <div class="tool-grid">
@@ -225,15 +338,135 @@
                 <span class="tool-arrow">&#8594;</span>
             </a>
 
-            <a class="tool-card" href="plant-doctor.html">
+            <a class="tool-card is-dev" href="plant-doctor.html">
                 <div class="tool-icon icon-green">綠</div>
                 <div class="tool-body">
-                    <h2>植物醫生</h2>
+                    <h2>植物醫生<span class="dev-badge">🚧 開發中，敬請期待</span></h2>
                     <p>拍照辨識植物、診斷病蟲害、提供完整養護指南。多肉、觀葉、花卉、香草都能認。</p>
                 </div>
                 <span class="tool-arrow">&#8594;</span>
             </a>
         </div>
+
+        <!-- Feedback Modal -->
+        <div class="modal-overlay" id="feedback-modal">
+            <div class="modal" id="feedback-modal-inner">
+                <div id="feedback-form-view">
+                    <h3>💬 想要什麼新工具？</h3>
+                    <p class="modal-sub">請告訴我你或家人在生活中遇到的小麻煩，我會評估做成 AI 工具放上來。<br>勾選下面選項就好，不用打太多字～</p>
+
+                    <div class="form-section">
+                        <label class="field-label">你是誰？<span class="opt">（選填）</span></label>
+                        <input type="text" id="fb-name" placeholder="例如：王媽媽 / 小明">
+                    </div>
+
+                    <div class="form-section">
+                        <label class="field-label">你最常做什麼事？<span class="opt">（可複選）</span></label>
+                        <div class="check-grid">
+                            <label class="check-item"><input type="checkbox" name="usage" value="拍照記錄生活"><span>拍照記錄生活</span></label>
+                            <label class="check-item"><input type="checkbox" name="usage" value="LINE 聊天/分享圖"><span>LINE 聊天分享圖</span></label>
+                            <label class="check-item"><input type="checkbox" name="usage" value="買東西比價"><span>買東西/比價</span></label>
+                            <label class="check-item"><input type="checkbox" name="usage" value="出國旅行"><span>出國旅行</span></label>
+                            <label class="check-item"><input type="checkbox" name="usage" value="種花養植物"><span>種花養植物</span></label>
+                            <label class="check-item"><input type="checkbox" name="usage" value="煮飯做菜"><span>煮飯做菜</span></label>
+                            <label class="check-item"><input type="checkbox" name="usage" value="健康/看醫生"><span>健康/看醫生</span></label>
+                            <label class="check-item"><input type="checkbox" name="usage" value="整理照片影片"><span>整理照片影片</span></label>
+                            <label class="check-item"><input type="checkbox" name="usage" value="寫文章/訊息"><span>寫文章/訊息</span></label>
+                            <label class="check-item"><input type="checkbox" name="usage" value="工作/做生意"><span>工作/做生意</span></label>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <label class="field-label">你希望的工具大概是？<span class="opt">（可複選）</span></label>
+                        <div class="check-grid">
+                            <label class="check-item"><input type="checkbox" name="type" value="拍照立刻得到答案"><span>拍照立刻得到答案</span></label>
+                            <label class="check-item"><input type="checkbox" name="type" value="生成圖片/插圖"><span>生成圖片/插圖</span></label>
+                            <label class="check-item"><input type="checkbox" name="type" value="修圖/美化照片"><span>修圖/美化照片</span></label>
+                            <label class="check-item"><input type="checkbox" name="type" value="翻譯/解讀外文"><span>翻譯/解讀外文</span></label>
+                            <label class="check-item"><input type="checkbox" name="type" value="幫忙寫字/回訊息"><span>幫忙寫字/回訊息</span></label>
+                            <label class="check-item"><input type="checkbox" name="type" value="念給我聽（語音）"><span>念給我聽（語音）</span></label>
+                            <label class="check-item"><input type="checkbox" name="type" value="算數/換算單位"><span>算數/換算單位</span></label>
+                            <label class="check-item"><input type="checkbox" name="type" value="排行程/做表格"><span>排行程/做表格</span></label>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <label class="field-label">想說的話 <span class="opt">（可寫具體場景，會更有幫助）</span></label>
+                        <textarea id="fb-text" placeholder="例如：我媽常常看不懂藥品包裝上的字，希望可以拍照之後 AI 念給她聽..."></textarea>
+                    </div>
+
+                    <div class="form-section">
+                        <label class="field-label">怎麼聯絡你？<span class="opt">（選填，例如 LINE ID 或 email，方便我問細節）</span></label>
+                        <input type="text" id="fb-contact" placeholder="例如：line@xxxxx 或 email@xxx.com">
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="btn-cancel" id="fb-cancel">取消</button>
+                        <button class="btn-submit" id="fb-submit">送出建議</button>
+                    </div>
+                </div>
+
+                <div class="modal-success" id="feedback-success-view" style="display:none;">
+                    <div class="big">🙏</div>
+                    <h3>感謝你的建議！</h3>
+                    <p>笙哥會親自看每一條留言，<br>有合適的點子會優先做成工具。</p>
+                    <div class="modal-actions" style="margin-top:20px;">
+                        <button class="btn-submit" id="fb-close">關閉</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        (function(){
+            const $ = (id) => document.getElementById(id);
+            const modal = $('feedback-modal');
+            const formView = $('feedback-form-view');
+            const successView = $('feedback-success-view');
+            const submitBtn = $('fb-submit');
+
+            $('open-feedback').addEventListener('click', () => {
+                modal.classList.add('visible');
+                formView.style.display = 'block';
+                successView.style.display = 'none';
+            });
+            $('fb-cancel').addEventListener('click', () => modal.classList.remove('visible'));
+            $('fb-close').addEventListener('click', () => modal.classList.remove('visible'));
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('visible'); });
+
+            submitBtn.addEventListener('click', async () => {
+                const usage = [...document.querySelectorAll('input[name="usage"]:checked')].map(el => el.value);
+                const type = [...document.querySelectorAll('input[name="type"]:checked')].map(el => el.value);
+                const text = $('fb-text').value.trim();
+                const name = $('fb-name').value.trim();
+                const contact = $('fb-contact').value.trim();
+
+                if (!usage.length && !type.length && !text) {
+                    alert('請至少勾選一個選項或留言文字');
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = '送出中…';
+
+                try {
+                    const resp = await fetch('/api/feedback', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, usage, type, text, contact, ts: new Date().toISOString(), ua: navigator.userAgent })
+                    });
+                    if (!resp.ok) throw new Error('送出失敗');
+                    formView.style.display = 'none';
+                    successView.style.display = 'block';
+                } catch (err) {
+                    alert('送出失敗，請稍後再試。如急著聯絡笙哥，請直接傳 LINE 給他。');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '送出建議';
+                }
+            });
+        })();
+        </script>
 
         <footer>
             <p>笙闆的 AI 工具箱 &middot; Powered by REYWAY</p>
