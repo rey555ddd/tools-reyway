@@ -64,77 +64,58 @@ ${bgDescription}
 
 Add natural shadows and lighting so the product sits realistically in the new scene. The result should look like a professional product photograph. Output the edited image directly.`;
 
-    // Call Gemini API with retry on transient failures (5xx, 429)
-    const callGemini = async (timeoutMs: number): Promise<Response> => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        return await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { text: prompt },
-                  { inlineData: { mimeType: mime, data: base64Data } },
-                ],
-              }],
-              generationConfig: {
-                responseModalities: ['TEXT', 'IMAGE'],
-                temperature: 0.4,
-              },
-            }),
-            signal: controller.signal,
-          }
-        );
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    };
+    // Call Gemini once. Image generation is slow (30-60s); retrying within the same
+    // request risks blowing past Cloudflare's wall-clock limit (causing a raw 502).
+    // If it fails, return a clear message and let the user retry manually.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 70_000);
 
     let geminiResp: Response;
-    let attempt = 0;
-    const maxAttempts = 2;
-    let lastErrBody = '';
-
-    while (attempt < maxAttempts) {
-      attempt++;
-      try {
-        geminiResp = await callGemini(60_000);
-      } catch (err: any) {
-        if (err.name === 'AbortError') {
-          return new Response(
-            JSON.stringify({ error: '模型回應逾時，請稍後重試或換一張較單純的圖片（背景乾淨、主體明確）' }),
-            { status: 504, headers: { 'Content-Type': 'application/json' } }
-          );
+    try {
+      geminiResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType: mime, data: base64Data } },
+              ],
+            }],
+            generationConfig: {
+              responseModalities: ['TEXT', 'IMAGE'],
+              temperature: 0.4,
+            },
+          }),
+          signal: controller.signal,
         }
-        if (attempt >= maxAttempts) throw err;
-        await new Promise(r => setTimeout(r, 1500));
-        continue;
+      );
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ error: '模型回應逾時，請稍候再試或換一張較單純的圖片（背景乾淨、主體明確）' }),
+          { status: 504, headers: { 'Content-Type': 'application/json' } }
+        );
       }
+      throw err;
+    }
+    clearTimeout(timeoutId);
 
-      if (geminiResp.ok) break;
-
-      // Retry on transient errors only (5xx, 429)
+    if (!geminiResp.ok) {
       const status = geminiResp.status;
-      lastErrBody = await geminiResp.text();
-      console.error(`Gemini API error (attempt ${attempt}):`, status, lastErrBody.slice(0, 300));
+      const errBody = await geminiResp.text();
+      console.error('Gemini API error:', status, errBody.slice(0, 300));
 
-      if ((status >= 500 || status === 429) && attempt < maxAttempts) {
-        await new Promise(r => setTimeout(r, 1500));
-        continue;
-      }
-
-      // Non-retryable or out of attempts
       let userMsg: string;
       if (status === 400) {
-        userMsg = '這張圖片無法處理（可能含人物、隱私或不適內容），請改用單純的商品照（背景乾淨、無人臉）';
+        userMsg = '這張圖片無法處理（可能含人物、隱私或敏感內容），請改用單純的商品照（背景乾淨、無人臉）';
       } else if (status === 429) {
-        userMsg = '使用人數較多，請稍候 30 秒再試';
+        userMsg = '使用人數較多或請求過於頻繁，請稍候 30 秒再試';
       } else if (status >= 500) {
-        userMsg = 'AI 服務暫時不穩，請稍候再試。如連續失敗請換較單純的商品照（背景乾淨、無人臉、無反射）';
+        userMsg = 'AI 服務暫時不穩，請稍候 10-20 秒後再點一次「生成」';
       } else {
         userMsg = `AI 服務回應異常 (${status})，請稍後重試`;
       }
