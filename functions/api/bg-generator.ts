@@ -56,15 +56,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const base64Data = image.includes(',') ? image.split(',')[1] : image;
     const mime = mimeType || 'image/jpeg';
 
-    const prompt = `你是一個專業的商品攝影後製專家。請將這張商品照片中的商品完整去背（移除原本的背景），然後將商品放置在以下情境背景中：
+    // Direct image-editing prompt. Gemini 2.5 Flash Image responds best to
+    // imperative "Edit this image to..." phrasing rather than descriptive instructions.
+    const prompt = `Edit this image: keep the main product/subject exactly as it is (preserve its shape, color, and details), but completely replace the background with the following scene:
 
 ${bgDescription}
 
-要求：
-1. 商品本身必須完整保留，不可變形或改變顏色
-2. 商品要自然地融入新背景中，包含合理的陰影和光影效果
-3. 整體要看起來像專業的商品攝影作品
-4. 輸出高品質的正方形構圖圖片`;
+Add natural shadows and lighting so the product sits realistically in the new scene. The result should look like a professional product photograph. Output the edited image directly.`;
 
     // Call Gemini API with retry on transient failures (5xx, 429)
     const callGemini = async (timeoutMs: number): Promise<Response> => {
@@ -165,10 +163,11 @@ ${bgDescription}
 
     if (!resultImage) {
       // If no image was generated, return text explanation
+      const detail = resultText ? `模型回應：${resultText.slice(0, 200)}` : '模型未回傳圖片';
       return new Response(
         JSON.stringify({
-          error: '無法生成情境圖，請嘗試不同的背景風格或重新上傳圖片',
-          detail: resultText || '模型未回傳圖片',
+          error: `無法生成情境圖（${detail}）。請換另一張商品照或不同的背景風格再試`,
+          detail,
         }),
         { status: 422, headers: { 'Content-Type': 'application/json' } }
       );
