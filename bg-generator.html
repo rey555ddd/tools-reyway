@@ -594,7 +594,7 @@
         </nav>
 
         <div class="header">
-            <h1>去背商品情境生成器</h1>
+            <h1>去背商品情境圖生成器</h1>
             <p>上傳商品照片，AI 自動去背並生成精美情境圖</p>
         </div>
 
@@ -634,7 +634,7 @@
                             <span class="preset-emoji">🎀</span>
                             <span class="preset-name">絲絨布幔</span>
                         </div>
-                        <div class="preset-card" data-preset="metal">
+                        <div class="preset-card" data-preset="metallic">
                             <span class="preset-emoji">✨</span>
                             <span class="preset-name">金屬質感</span>
                         </div>
@@ -642,7 +642,7 @@
                             <span class="preset-emoji">💎</span>
                             <span class="preset-name">水晶光影</span>
                         </div>
-                        <div class="preset-card" data-preset="minimalist">
+                        <div class="preset-card" data-preset="minimal">
                             <span class="preset-emoji">⚪</span>
                             <span class="preset-name">極簡白</span>
                         </div>
@@ -650,7 +650,7 @@
                             <span class="preset-emoji">🪵</span>
                             <span class="preset-name">原木桌面</span>
                         </div>
-                        <div class="preset-card" data-preset="plant">
+                        <div class="preset-card" data-preset="leaves">
                             <span class="preset-emoji">🌿</span>
                             <span class="preset-name">綠葉植物</span>
                         </div>
@@ -658,11 +658,11 @@
                             <span class="preset-emoji">🌸</span>
                             <span class="preset-name">花瓣散落</span>
                         </div>
-                        <div class="preset-card" data-preset="cotton">
+                        <div class="preset-card" data-preset="linen">
                             <span class="preset-emoji">🧵</span>
                             <span class="preset-name">棉麻布料</span>
                         </div>
-                        <div class="preset-card" data-preset="sunlight">
+                        <div class="preset-card" data-preset="window">
                             <span class="preset-emoji">☀️</span>
                             <span class="preset-name">晨光窗台</span>
                         </div>
@@ -670,7 +670,7 @@
                 </div>
 
                 <div class="custom-section">
-                    <label class="custom-label">自訂提示詞</label>
+                    <label class="custom-label">自訢背景（請輸入想要的畫面）</label>
                     <textarea id="customPrompt" placeholder="或在此描述您想要的場景背景，例如：現代客廳，木地板，自然光，綠植..."></textarea>
                 </div>
 
@@ -758,28 +758,48 @@
             if (!selectedFile) return;
             const background = selectedPreset || customPrompt.value.trim() || 'white';
             generateBtn.classList.add('loading'); generateBtn.disabled = true;
+            generateBtn.textContent = '生成中，請稍候…';
+
             try {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const base64 = e.target.result.split(',')[1];
-                    const mimeType = selectedFile.type;
-                    if (isDemoMode) { showDemoResult(); }
-                    else {
-                        try {
-                            const response = await fetch('/api/bg-generator', {
-                                method:'POST', headers:{'Content-Type':'application/json'},
-                                body:JSON.stringify({image:base64,mimeType,backgroundStyle:background,customPrompt:selectedPreset?'':customPrompt.value.trim()})
-                            });
-                            if (!response.ok) throw new Error('API error: '+response.status);
-                            const data = await response.json();
-                            resultImageData = data.image;
-                            resultImage.src = 'data:'+data.mimeType+';base64,'+data.image;
-                            resultCard.classList.add('visible');
-                        } catch(error) { console.error('Generation error:',error); alert('生成失敗，請稍後重試'); showDemoResult(); }
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(selectedFile);
+                });
+                const mimeType = selectedFile.type;
+
+                if (isDemoMode) {
+                    showDemoResult();
+                } else {
+                    const response = await fetch('/api/bg-generator', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            image: base64,
+                            mimeType,
+                            backgroundStyle: background,
+                            customPrompt: selectedPreset ? '' : customPrompt.value.trim()
+                        })
+                    });
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || 'API error: ' + response.status);
                     }
-                };
-                reader.readAsDataURL(selectedFile);
-            } finally { generateBtn.classList.remove('loading'); generateBtn.disabled = false; }
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error);
+                    resultImageData = data.image;
+                    resultImage.src = 'data:' + data.mimeType + ';base64,' + data.image;
+                    resultCard.classList.add('visible');
+                }
+            } catch (error) {
+                console.error('Generation error:', error);
+                alert('生成失敗：' + (error.message || '請稍後重試'));
+            } finally {
+                generateBtn.classList.remove('loading');
+                generateBtn.disabled = false;
+                generateBtn.textContent = '生成情境圖';
+            }
         });
 
         function showDemoResult() {
