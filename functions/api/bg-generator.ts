@@ -66,57 +66,87 @@ ${bgDescription}
 3. 整體要看起來像專業的商品攝影作品
 4. 輸出高品質的正方形構圖圖片`;
 
-    // Call Gemini API with image generation capability
-    // Abort after 75s so we can return a clean error before Cloudflare drops the connection (522/524)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 75_000);
-
-    let geminiResp: Response;
-    try {
-      geminiResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
+    // Call Gemini API with retry on transient failures (5xx, 429)
+    const callGemini = async (timeoutMs: number): Promise<Response> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
                 parts: [
                   { text: prompt },
                   { inlineData: { mimeType: mime, data: base64Data } },
                 ],
+              }],
+              generationConfig: {
+                responseModalities: ['TEXT', 'IMAGE'],
+                temperature: 0.4,
               },
-            ],
-            generationConfig: {
-              responseModalities: ['TEXT', 'IMAGE'],
-              temperature: 0.4,
-            },
-          }),
-          signal: controller.signal,
-        }
-      );
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
-        return new Response(
-          JSON.stringify({ error: '模型回應逾時，請稍後重試或換一張較簡單的圖片' }),
-          { status: 504, headers: { 'Content-Type': 'application/json' } }
+            }),
+            signal: controller.signal,
+          }
         );
+      } finally {
+        clearTimeout(timeoutId);
       }
-      throw err;
-    }
-    clearTimeout(timeoutId);
+    };
 
-    if (!geminiResp.ok) {
-      const errBody = await geminiResp.text();
-      console.error('Gemini API error:', geminiResp.status, errBody);
+    let geminiResp: Response;
+    let attempt = 0;
+    const maxAttempts = 2;
+    let lastErrBody = '';
+
+    while (attempt < maxAttempts) {
+      attempt++;
+      try {
+        geminiResp = await callGemini(60_000);
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          return new Response(
+            JSON.stringify({ error: '模型回應逾時，請稍後重試或換一張較單純的圖片（背景乾淨、主體明確）' }),
+            { status: 504, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+        if (attempt >= maxAttempts) throw err;
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+
+      if (geminiResp.ok) break;
+
+      // Retry on transient errors only (5xx, 429)
+      const status = geminiResp.status;
+      lastErrBody = await geminiResp.text();
+      console.error(`Gemini API error (attempt ${attempt}):`, status, lastErrBody.slice(0, 300));
+
+      if ((status >= 500 || status === 429) && attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+
+      // Non-retryable or out of attempts
+      let userMsg: string;
+      if (status === 400) {
+        userMsg = '這張圖片無法處理（可能含人物、隱私或不適內容），請改用單純的商品照（背景乾淨、無人臉）';
+      } else if (status === 429) {
+        userMsg = '使用人數較多，請稍候 30 秒再試';
+      } else if (status >= 500) {
+        userMsg = 'AI 服務暫時不穩，請稍候再試。如連續失敗請換較單純的商品照（背景乾淨、無人臉、無反射）';
+      } else {
+        userMsg = `AI 服務回應異常 (${status})，請稍後重試`;
+      }
       return new Response(
-        JSON.stringify({ error: `Gemini API 回應錯誤 (${geminiResp.status})` }),
+        JSON.stringify({ error: userMsg }),
         { status: 502, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const data = await geminiResp.json() as any;
+    const data = await geminiResp!.json() as any;
     const parts = data?.candidates?.[0]?.content?.parts || [];
 
     // Find the image part in the response
