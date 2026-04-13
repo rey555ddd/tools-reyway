@@ -45,13 +45,25 @@
 
         /* ===== Ambient Background ===== */
         .ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-        .orb{position:absolute;border-radius:50%;filter:blur(100px);will-change:transform;opacity:0.7}
-        .orb-1{width:50vw;height:50vw;top:-20%;left:-15%;background:radial-gradient(circle,rgba(74,127,247,0.06),transparent 60%);animation:float1 30s ease-in-out infinite}
-        .orb-2{width:40vw;height:40vw;bottom:-15%;right:-12%;background:radial-gradient(circle,rgba(196,153,60,0.04),transparent 60%);animation:float2 24s ease-in-out infinite}
-        .orb-3{width:30vw;height:30vw;top:40%;left:50%;background:radial-gradient(circle,rgba(139,108,193,0.03),transparent 60%);animation:float3 20s ease-in-out infinite}
-        @keyframes float1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,30px) scale(1.05)}}
-        @keyframes float2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-30px,-40px) scale(1.03)}}
-        @keyframes float3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,25px) scale(0.97)}}
+        .orb{position:absolute;border-radius:50%;filter:blur(90px);will-change:transform;opacity:0.85}
+        .orb-1{width:38vw;height:38vw;top:-12%;left:-8%;background:radial-gradient(circle,rgba(74,127,247,0.10),transparent 65%);animation:float1 32s ease-in-out infinite}
+        .orb-2{width:30vw;height:30vw;bottom:-8%;right:-6%;background:radial-gradient(circle,rgba(218,165,76,0.08),transparent 65%);animation:float2 28s ease-in-out infinite}
+        .orb-3{width:24vw;height:24vw;top:42%;left:48%;background:radial-gradient(circle,rgba(139,108,193,0.06),transparent 65%);animation:float3 24s ease-in-out infinite}
+        .orb-4{width:20vw;height:20vw;top:20%;right:18%;background:radial-gradient(circle,rgba(58,154,110,0.05),transparent 65%);animation:float2 26s ease-in-out infinite reverse;position:absolute;border-radius:50%;filter:blur(90px);will-change:transform;opacity:0.8}
+        @keyframes float1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,24px) scale(1.04)}}
+        @keyframes float2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-24px,-32px) scale(1.03)}}
+        @keyframes float3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-16px,20px) scale(0.98)}}
+
+        /* 細緻格狀底紋（極淡） */
+        .grid-bg{
+            position:fixed;inset:0;pointer-events:none;z-index:0;
+            background-image:
+                linear-gradient(rgba(74,127,247,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(74,127,247,0.025) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.7), transparent 75%);
+            -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.7), transparent 75%);
+        }
 
         /* ===== Noise Texture ===== */
         .noise{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.03;
@@ -357,7 +369,9 @@
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
         <div class="orb orb-3"></div>
+        <div class="orb-4"></div>
     </div>
+    <div class="grid-bg"></div>
     <div class="noise"></div>
 
     <div class="container">
