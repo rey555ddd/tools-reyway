@@ -67,9 +67,9 @@ ${bgDescription}
 4. 輸出高品質的正方形構圖圖片`;
 
     // Call Gemini API with image generation capability
-    // Updated to gemini-2.5-flash-image (GA model, replaces deprecated gemini-2.0-flash-exp)
+    // gemini-2.0-flash-exp supports responseModalities: IMAGE for native image output
     const geminiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
