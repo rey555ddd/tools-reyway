@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>植物醫生 — 笙闆的AI工具箱</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #f6faf6;
+    --surface: rgba(255,255,255,0.9);
+    --border: rgba(0,0,0,0.08);
+    --text: #1f2937;
+    --text-secondary: #4b5563;
+    --text-tertiary: #9ca3af;
+    --green: #16a34a;
+    --green-hover: #15803d;
+    --green-soft: rgba(22,163,74,0.1);
+    --warn: #d97706;
+    --warn-soft: #fef3c7;
+    --danger: #dc2626;
+    --danger-soft: #fee2e2;
+    --info-soft: #dbeafe;
+  }
+  html, body {
+    font-family: 'Noto Sans TC', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 17px;
+    line-height: 1.7;
+  }
+  body {
+    min-height: 100vh;
+    padding: 24px 16px 80px;
+    background:
+      radial-gradient(800px 400px at 0% 0%, rgba(22,163,74,0.06), transparent 50%),
+      radial-gradient(600px 300px at 100% 100%, rgba(218,165,32,0.05), transparent 50%),
+      var(--bg);
+  }
+  .container { max-width: 760px; margin: 0 auto; }
+
+  .back-link { display: inline-block; color: var(--green); text-decoration: none; font-size: 14px; margin-bottom: 16px; }
+  .back-link:hover { text-decoration: underline; }
+
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 30px; font-weight: 700; color: var(--text); }
+  header h1 .leaf { color: var(--green); }
+  header p { color: var(--text-secondary); margin-top: 8px; font-size: 16px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .card h2 {
+    font-size: 18px; font-weight: 600; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .step-num {
+    background: var(--green-soft); color: var(--green);
+    width: 32px; height: 32px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 700;
+  }
+
+  /* 模式選擇 */
+  .mode-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .mode-btn {
+    background: white; border: 2px solid var(--border);
+    border-radius: 14px; padding: 18px 12px;
+    cursor: pointer; font-family: inherit; font-size: 15px;
+    color: var(--text); transition: all 0.2s;
+    text-align: center; font-weight: 600;
+  }
+  .mode-btn .emoji { font-size: 32px; display: block; margin-bottom: 6px; }
+  .mode-btn .desc { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; font-weight: 400; }
+  .mode-btn:hover { border-color: var(--green); }
+  .mode-btn.active {
+    background: var(--green-soft); border-color: var(--green); color: var(--green);
+  }
+  .mode-btn.active .desc { color: var(--green); }
+
+  /* 上傳區 */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 16px;
+    padding: 40px 20px; text-align: center; cursor: pointer;
+    transition: all 0.2s; background: white; display: block;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--green); background: var(--green-soft);
+  }
+  .upload-zone .big-icon { font-size: 56px; margin-bottom: 12px; }
+  .upload-zone .main-text { font-size: 18px; font-weight: 600; }
+  .upload-zone .sub-text { font-size: 14px; color: var(--text-secondary); margin-top: 6px; }
+  .upload-zone input[type="file"] { display: none; }
+
+  .preview-area { display: none; }
+  .preview-area.visible { display: block; }
+  .preview-img {
+    width: 100%; max-height: 360px; object-fit: contain;
+    border-radius: 12px; background: #000; margin-bottom: 14px;
+  }
+
+  textarea {
+    width: 100%; padding: 14px;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    font-family: inherit; font-size: 15px;
+    resize: vertical; min-height: 70px;
+    background: white;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { outline: none; border-color: var(--green); }
+  .field-label { display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+  .field-hint { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+  .btn {
+    flex: 1; padding: 14px 20px; border-radius: 12px;
+    font-family: inherit; font-size: 16px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--green); color: white; }
+  .btn-primary:hover { background: var(--green-hover); }
+  .btn-primary:disabled { background: var(--text-tertiary); cursor: not-allowed; }
+  .btn-secondary {
+    background: white; color: var(--text-secondary); border: 1.5px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--text-tertiary); }
+
+  /* Loading */
+  .loading-state {
+    display: none; text-align: center; padding: 40px 20px;
+    background: white; border-radius: 16px;
+  }
+  .loading-state.visible { display: block; }
+  .loading-spinner {
+    width: 48px; height: 48px; border: 4px solid var(--green-soft);
+    border-top-color: var(--green); border-radius: 50%;
+    margin: 0 auto 16px; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 16px; color: var(--text-secondary); }
+
+  /* 結果 */
+  .result-area { display: none; }
+  .result-area.visible { display: block; }
+
+  .plant-name { font-size: 26px; font-weight: 700; color: var(--text); }
+  .plant-sci { font-size: 14px; color: var(--text-tertiary); font-style: italic; margin-top: 4px; }
+  .plant-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .badge {
+    background: var(--green-soft); color: var(--green);
+    padding: 4px 12px; border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+  }
+  .badge-warn { background: var(--warn-soft); color: var(--warn); }
+  .badge-danger { background: var(--danger-soft); color: var(--danger); }
+  .badge-info { background: var(--info-soft); color: #1d4ed8; }
+
+  .section { margin-top: 22px; }
+  .section:first-child { margin-top: 0; }
+  .section-label {
+    font-size: 14px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-content { font-size: 16px; line-height: 1.8; color: var(--text); }
+  .section-list { list-style: none; padding: 0; }
+  .section-list li {
+    padding: 10px 0 10px 26px; position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-list li:last-child { border-bottom: none; }
+  .section-list li::before {
+    content: '🌿'; position: absolute; left: 0; font-size: 14px;
+  }
+
+  .info-box {
+    background: var(--green-soft); border-left: 4px solid var(--green);
+    padding: 16px 20px; border-radius: 10px;
+    font-size: 16px; line-height: 1.8;
+  }
+  .warn-box {
+    background: var(--warn-soft); border-left: 4px solid #f59e0b;
+    padding: 16px 20px; border-radius: 10px;
+    font-size: 16px; line-height: 1.8;
+  }
+  .danger-box {
+    background: var(--danger-soft); border-left: 4px solid var(--danger);
+    padding: 16px 20px; border-radius: 10px;
+    font-size: 16px; line-height: 1.8;
+  }
+  .danger-box li::before { content: '⚠️'; }
+  .warn-box li::before { content: '👉'; }
+
+  .care-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px; margin-top: 8px;
+  }
+  .care-item {
+    background: white; border: 1px solid var(--border);
+    padding: 14px; border-radius: 10px;
+  }
+  .care-item .label {
+    font-size: 13px; font-weight: 700; color: var(--green);
+    margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .care-item .value { font-size: 15px; line-height: 1.7; color: var(--text); }
+  .care-item .warn-text { font-size: 13px; color: var(--warn); margin-top: 6px; }
+
+  .seasons-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .season-item {
+    background: white; border: 1px solid var(--border);
+    padding: 12px; border-radius: 10px;
+    font-size: 14px;
+  }
+  .season-item strong { color: var(--green); display: block; margin-bottom: 4px; font-size: 13px; }
+
+  .alt-list {
+    background: #fef3c7; border-radius: 10px; padding: 12px 16px;
+    font-size: 14px; color: var(--text);
+  }
+  .alt-list strong { color: #b8851a; }
+  .alt-list div { margin-top: 4px; }
+
+  .encouragement {
+    text-align: center; padding: 16px;
+    background: var(--green-soft); border-radius: 12px;
+    color: var(--green); font-size: 16px; font-weight: 600;
+    margin-top: 20px;
+  }
+
+  .tips {
+    background: var(--info-soft); padding: 14px 18px; border-radius: 10px;
+    font-size: 15px; color: var(--text); margin-top: 16px;
+  }
+  .tips strong { color: #1d4ed8; }
+
+  @media (max-width: 480px) {
+    body { padding: 16px 12px 60px; font-size: 16px; }
+    header h1 { font-size: 24px; }
+    .card { padding: 18px; }
+    .mode-grid { grid-template-columns: 1fr; }
+    .mode-btn { padding: 14px; }
+    .plant-name { font-size: 22px; }
+    .care-grid { grid-template-columns: 1fr; }
+  }
+
+  footer { text-align: center; margin-top: 40px; color: var(--text-tertiary); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="/" class="back-link">← 回工具箱首頁</a>
+
+  <header>
+    <h1><span class="leaf">🌿</span> 植物醫生</h1>
+    <p>拍張照片，AI 幫你認植物、看病、學養護</p>
+  </header>
+
+  <!-- Step 1：選模式 -->
+  <div class="card">
+    <h2><span class="step-num">1</span>你想做什麼？</h2>
+    <div class="mode-grid" id="mode-grid">
+      <button class="mode-btn active" data-mode="identify">
+        <span class="emoji">🔍</span>
+        <div>這是什麼植物？</div>
+        <div class="desc">辨識品種</div>
+      </button>
+      <button class="mode-btn" data-mode="diagnose">
+        <span class="emoji">🩺</span>
+        <div>植物怎麼了？</div>
+        <div class="desc">診斷病蟲害</div>
+      </button>
+      <button class="mode-btn" data-mode="care">
+        <span class="emoji">📖</span>
+        <div>怎麼照顧？</div>
+        <div class="desc">完整養護指南</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 2：拍照 -->
+  <div class="card">
+    <h2><span class="step-num">2</span>拍照或上傳</h2>
+    <label class="upload-zone" id="upload-zone">
+      <div class="big-icon">📸</div>
+      <div class="main-text">點這裡拍照或選照片</div>
+      <div class="sub-text" id="upload-hint">建議拍清楚葉片正面，越靠近越好</div>
+      <input type="file" id="file-input" accept="image/*" capture="environment">
+    </label>
+
+    <div class="preview-area" id="preview-area">
+      <img class="preview-img" id="preview-img" alt="預覽">
+
+      <label class="field-label">補充說明（選填，可幫助 AI 更準確）</label>
+      <textarea id="user-note" placeholder="例如：放在朝東窗邊，每週澆一次水，最近葉片開始變黃..."></textarea>
+      <div class="field-hint">寫下你照顧的方式、最近的變化，AI 會結合判斷</div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="reupload-btn">重新上傳</button>
+        <button class="btn btn-primary" id="analyze-btn">開始分析</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-state" id="loading-state">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loading-text">AI 正在仔細看您的植物…</div>
+  </div>
+
+  <!-- 結果區 -->
+  <div class="result-area" id="result-area">
+    <div class="card" id="result-card"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="restart-btn">分析另一張</button>
+    </div>
+  </div>
+
+  <footer>笙闆的 AI 工具箱 · Powered by REYWAY</footer>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const fileInput = $('file-input');
+  const uploadZone = $('upload-zone');
+  const previewArea = $('preview-area');
+  const previewImg = $('preview-img');
+  const reuploadBtn = $('reupload-btn');
+  const analyzeBtn = $('analyze-btn');
+  const restartBtn = $('restart-btn');
+  const loadingState = $('loading-state');
+  const loadingText = $('loading-text');
+  const resultArea = $('result-area');
+  const resultCard = $('result-card');
+  const userNote = $('user-note');
+  const modeGrid = $('mode-grid');
+  const uploadHint = $('upload-hint');
+
+  let selectedMode = 'identify';
+  let compressedBase64 = null;
+
+  const HINT_MAP = {
+    identify: '建議拍全株或清楚葉片，越完整越好',
+    diagnose: '請拍出問題部位特寫（黃葉、斑點、蟲體等），越靠近越好',
+    care: '建議拍全株正面，方便辨識品種'
+  };
+
+  modeGrid.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mode-btn');
+    if (!btn) return;
+    [...modeGrid.children].forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedMode = btn.dataset.mode;
+    uploadHint.textContent = HINT_MAP[selectedMode];
+  });
+
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault(); uploadZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+  });
+
+  function compressImage(file, maxSize = 1536, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          const ratio = Math.min(maxSize / width, maxSize / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve({ dataUrl, base64: dataUrl.split(',')[1] });
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  async function handleFile(file) {
+    if (!file.type.startsWith('image/')) { alert('請選圖片檔'); return; }
+    if (file.size > 20 * 1024 * 1024) { alert('檔案超過 20MB'); return; }
+
+    uploadZone.style.display = 'none';
+    previewArea.classList.add('visible');
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = '處理圖片中…';
+
+    try {
+      const r = await compressImage(file);
+      compressedBase64 = r.base64;
+      previewImg.src = r.dataUrl;
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = '開始分析';
+    } catch {
+      alert('圖片處理失敗，請換一張');
+      reset();
+    }
+  }
+
+  function reset() {
+    compressedBase64 = null;
+    fileInput.value = '';
+    userNote.value = '';
+    uploadZone.style.display = 'block';
+    previewArea.classList.remove('visible');
+    resultArea.classList.remove('visible');
+    loadingState.classList.remove('visible');
+  }
+
+  reuploadBtn.addEventListener('click', reset);
+  restartBtn.addEventListener('click', () => { reset(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  analyzeBtn.addEventListener('click', async () => {
+    if (!compressedBase64) return;
+
+    previewArea.classList.remove('visible');
+    loadingState.classList.add('visible');
+    resultArea.classList.remove('visible');
+
+    const stages = [
+      { at: 0,  text: 'AI 正在仔細看您的植物…' },
+      { at: 4,  text: '辨識植物特徵中…' },
+      { at: 10, text: '比對知識庫中…' },
+      { at: 18, text: '整理建議給您…' },
+      { at: 30, text: '快好了，請再稍候…' },
+    ];
+    const startTs = Date.now();
+    const updateText = () => {
+      const elapsed = Math.floor((Date.now() - startTs) / 1000);
+      const stage = stages.slice().reverse().find(s => elapsed >= s.at) || stages[0];
+      loadingText.textContent = `${stage.text} (${elapsed}s)`;
+    };
+    updateText();
+    const timer = setInterval(updateText, 1000);
+
+    try {
+      const resp = await fetch('/api/plant-doctor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: compressedBase64,
+          mimeType: 'image/jpeg',
+          mode: selectedMode,
+          userNote: userNote.value.trim()
+        })
+      });
+
+      if (!resp.ok) {
+        let msg;
+        if (resp.status === 522 || resp.status === 524 || resp.status === 504) {
+          msg = '辨識逾時，請稍候再試或重拍一張更清楚的照片';
+        } else {
+          const errData = await resp.json().catch(() => ({}));
+          msg = errData.error || `錯誤 ${resp.status}`;
+        }
+        throw new Error(msg);
+      }
+
+      const data = await resp.json();
+      renderResult(data);
+    } catch (err) {
+      console.error(err);
+      alert('分析失敗：' + (err.message || '請稍後重試'));
+      previewArea.classList.add('visible');
+    } finally {
+      clearInterval(timer);
+      loadingState.classList.remove('visible');
+    }
+  });
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  const _ = escapeHtml;
+
+  function renderResult(data) {
+    if (data.isPlant === false) {
+      resultCard.innerHTML = `
+        <div class="warn-box">
+          <strong>🤔 這張照片看起來不是植物</strong><br>
+          請確認照片清楚拍到植物本體，再試一次。
+        </div>`;
+      resultArea.classList.add('visible');
+      setTimeout(() => resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      return;
+    }
+
+    if (data.mode === 'identify') {
+      renderIdentify(data);
+    } else if (data.mode === 'diagnose') {
+      renderDiagnose(data);
+    } else {
+      renderCare(data);
+    }
+    resultArea.classList.add('visible');
+    setTimeout(() => resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+
+  function confidenceBadge(conf) {
+    const map = { '高': 'badge', '中': 'badge badge-warn', '低': 'badge badge-danger' };
+    return `<span class="${map[conf] || 'badge'}">信心：${_(conf || '中')}</span>`;
+  }
+
+  function renderIdentify(d) {
+    const altHtml = (d.alternatives && d.alternatives.length)
+      ? `<div class="section">
+          <div class="section-label">🤔 也可能是</div>
+          <div class="alt-list">
+            ${d.alternatives.map(a => `<div><strong>${_(a.name)}</strong>：${_(a.reason)}</div>`).join('')}
+          </div>
+        </div>` : '';
+
+    resultCard.innerHTML = `
+      <div class="plant-name">${_(d.commonName)}</div>
+      <div class="plant-sci">${_(d.scientificName)}</div>
+      <div class="plant-meta">
+        ${d.category ? `<span class="badge badge-info">${_(d.category)}</span>` : ''}
+        ${d.family ? `<span class="badge">${_(d.family)}</span>` : ''}
+        ${d.difficulty ? `<span class="badge badge-warn">難度：${_(d.difficulty)}</span>` : ''}
+        ${confidenceBadge(d.confidence)}
+      </div>
+
+      <div class="section">
+        <div class="section-label">📖 關於這株植物</div>
+        <div class="info-box">${_(d.intro)}</div>
+      </div>
+
+      ${d.alternativeNames && d.alternativeNames.length ? `
+        <div class="section">
+          <div class="section-label">📛 其他名稱</div>
+          <div class="section-content">${d.alternativeNames.map(_).join('、')}</div>
+        </div>` : ''}
+
+      ${d.lifespan ? `
+        <div class="section">
+          <div class="section-label">⏳ 壽命/生長</div>
+          <div class="section-content">${_(d.lifespan)}</div>
+        </div>` : ''}
+
+      ${altHtml}
+    `;
+  }
+
+  function renderDiagnose(d) {
+    const status = d.healthStatus || '';
+    const statusClass =
+      status === '健康' ? 'badge' :
+      status === '緊急' ? 'badge badge-danger' :
+      status === '需要處理' ? 'badge badge-danger' :
+      'badge badge-warn';
+
+    const main = d.mainDiagnosis || {};
+    const isHealthy = status === '健康';
+
+    const altHtml = (d.alternativeDiagnoses && d.alternativeDiagnoses.length)
+      ? `<div class="section">
+          <div class="section-label">🤔 也可能是</div>
+          <div class="alt-list">
+            ${d.alternativeDiagnoses.map(a => `<div><strong>${_(a.problem)}</strong>：${_(a.evidence)}</div>`).join('')}
+          </div>
+        </div>` : '';
+
+    resultCard.innerHTML = `
+      ${d.commonName ? `<div class="plant-name">${_(d.commonName)}</div>` : ''}
+      <div class="plant-meta" style="margin-top:${d.commonName ? '12px' : '0'};">
+        <span class="${statusClass}">健康狀態：${_(status)}</span>
+        ${main.confidence ? confidenceBadge(main.confidence) : ''}
+      </div>
+
+      <div class="section">
+        <div class="section-label">🔍 主要判斷</div>
+        <div class="${isHealthy ? 'info-box' : 'warn-box'}">
+          <strong style="font-size:17px;">${_(main.problem)}</strong><br>
+          <span style="font-size:14px; color:var(--text-secondary);">看到的徵兆：${_(main.evidence)}</span>
+        </div>
+      </div>
+
+      ${altHtml}
+
+      ${d.immediateActions && d.immediateActions.length ? `
+        <div class="section">
+          <div class="section-label">🚑 ${isHealthy ? '日常照護' : '立即處理'}</div>
+          <div class="${isHealthy ? 'info-box' : 'danger-box'}">
+            <ol class="section-list" style="margin:0; padding:0;">
+              ${d.immediateActions.map(a => `<li>${_(a)}</li>`).join('')}
+            </ol>
+          </div>
+        </div>` : ''}
+
+      ${d.prevention && d.prevention.length ? `
+        <div class="section">
+          <div class="section-label">🛡 預防再發生</div>
+          <ul class="section-list">
+            ${d.prevention.map(p => `<li>${_(p)}</li>`).join('')}
+          </ul>
+        </div>` : ''}
+
+      ${d.whenToWorry ? `
+        <div class="section">
+          <div class="section-label">⚠️ 什麼時候該擔心</div>
+          <div class="warn-box">${_(d.whenToWorry)}</div>
+        </div>` : ''}
+
+      ${d.encouragement ? `<div class="encouragement">${_(d.encouragement)}</div>` : ''}
+    `;
+  }
+
+  function renderCare(d) {
+    const w = d.watering || {};
+    const l = d.light || {};
+    const s = d.seasonalCare || {};
+
+    resultCard.innerHTML = `
+      <div class="plant-name">${_(d.commonName)}</div>
+      ${d.scientificName ? `<div class="plant-sci">${_(d.scientificName)}</div>` : ''}
+      <div class="plant-meta">
+        ${d.category ? `<span class="badge badge-info">${_(d.category)}</span>` : ''}
+        ${d.difficulty ? `<span class="badge badge-warn">難度：${_(d.difficulty)}</span>` : ''}
+      </div>
+
+      <div class="section">
+        <div class="section-label">🌱 養護要點</div>
+        <div class="care-grid">
+          <div class="care-item">
+            <div class="label">💧 澆水</div>
+            <div class="value"><strong>頻率</strong>：${_(w.frequency)}<br><strong>方法</strong>：${_(w.method)}</div>
+            ${w.warning ? `<div class="warn-text">⚠️ ${_(w.warning)}</div>` : ''}
+          </div>
+          <div class="care-item">
+            <div class="label">☀️ 光照</div>
+            <div class="value"><strong>需求</strong>：${_(l.level)}<br><strong>位置</strong>：${_(l.placement)}</div>
+            ${l.warning ? `<div class="warn-text">⚠️ ${_(l.warning)}</div>` : ''}
+          </div>
+          <div class="care-item">
+            <div class="label">🌡 溫度</div>
+            <div class="value">${_(d.temperature)}</div>
+          </div>
+          <div class="care-item">
+            <div class="label">💨 濕度</div>
+            <div class="value">${_(d.humidity)}</div>
+          </div>
+          <div class="care-item">
+            <div class="label">🪴 土壤</div>
+            <div class="value">${_(d.soil)}</div>
+          </div>
+          <div class="care-item">
+            <div class="label">🌾 施肥</div>
+            <div class="value">${_(d.fertilizer)}</div>
+          </div>
+          <div class="care-item">
+            <div class="label">🔄 換盆</div>
+            <div class="value">${_(d.repotting)}</div>
+          </div>
+          <div class="care-item">
+            <div class="label">🌿 繁殖</div>
+            <div class="value">${_(d.propagation)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">📅 四季照護（台灣氣候）</div>
+        <div class="seasons-grid">
+          <div class="season-item"><strong>🌸 春</strong>${_(s.spring)}</div>
+          <div class="season-item"><strong>☀️ 夏</strong>${_(s.summer)}</div>
+          <div class="season-item"><strong>🍂 秋</strong>${_(s.autumn)}</div>
+          <div class="season-item"><strong>❄️ 冬</strong>${_(s.winter)}</div>
+        </div>
+      </div>
+
+      ${d.commonMistakes && d.commonMistakes.length ? `
+        <div class="section">
+          <div class="section-label">❌ 常見錯誤</div>
+          <div class="warn-box">
+            <ul class="section-list" style="margin:0;">
+              ${d.commonMistakes.map(m => `<li>${_(m)}</li>`).join('')}
+            </ul>
+          </div>
+        </div>` : ''}
+
+      ${d.tips ? `<div class="tips"><strong>💡 小撇步：</strong>${_(d.tips)}</div>` : ''}
+    `;
+  }
+})();
+</script>
+</body>
+</html>
