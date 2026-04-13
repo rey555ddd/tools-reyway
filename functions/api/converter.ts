@@ -1,7 +1,7 @@
-// 海外購物換算器 API — Cloudflare Pages Function
+// 海外購物助手 API — Cloudflare Pages Function
 // POST /api/converter
-// Body: { image: base64String, mimeType: 'image/jpeg' | 'image/png' }
-// Returns: { product, items: [{ label, value, highlight }], rate }
+// Body: { image, mimeType, sourceCurrency, targetCurrency, rate }
+// Returns: { items: [{ name, originalPrice, unit, currency, convertedItems }], rate, sourceCurrency, targetCurrency }
 
 interface Env { GEMINI_API_KEY: string; }
 
@@ -17,48 +17,99 @@ const CONVERSIONS: Record<string, number> = {
   per_gallon: 3785.41, per_qt: 946.353, per_liter: 1000, per_floz: 29.5735,
 };
 
-const UNIT_NAMES: Record<string, string> = {
-  per_lb: '每磅 (lb)', per_oz: '每盎司 (oz)', per_kg: '每公斤',
-  per_100g: '每 100g', each: '每個', per_gallon: '每加侖',
-  per_qt: '每夸脫', per_liter: '每公升', per_floz: '每液體盎司',
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: 'US$', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩', CNY: '¥',
+  THB: '฿', VND: '₫', SGD: 'S$', MYR: 'RM', AUD: 'A$', CAD: 'C$',
+  HKD: 'HK$', PHP: '₱', IDR: 'Rp', TWD: 'NT$',
 };
 
-function formatItems(raw: RecognizedItem, rate: number): { label: string; value: string; highlight: boolean }[] {
+const CURRENCY_FLAGS: Record<string, string> = {
+  USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵', KRW: '🇰🇷', CNY: '🇨🇳',
+  THB: '🇹🇭', VND: '🇻🇳', SGD: '🇸🇬', MYR: '🇲🇾', AUD: '🇦🇺', CAD: '🇨🇦',
+  HKD: '🇭🇰', PHP: '🇵🇭', IDR: '🇮🇩', TWD: '🇹🇼',
+};
+
+// Default rates to TWD (approximate, user can override)
+const DEFAULT_RATES_TO_TWD: Record<string, number> = {
+  USD: 32.5, EUR: 35.5, GBP: 41.0, JPY: 0.215, KRW: 0.024, CNY: 4.5,
+  THB: 0.95, VND: 0.0013, SGD: 24.5, MYR: 7.3, AUD: 21.0, CAD: 23.5,
+  HKD: 4.15, PHP: 0.57, IDR: 0.002, TWD: 1,
+};
+
+function getDefaultRate(src: string, tgt: string): number {
+  const srcToTWD = DEFAULT_RATES_TO_TWD[src] || 1;
+  const tgtToTWD = DEFAULT_RATES_TO_TWD[tgt] || 1;
+  return srcToTWD / tgtToTWD;
+}
+
+function fmtPrice(amount: number, currency: string): string {
+  const sym = CURRENCY_SYMBOLS[currency] || currency;
+  if (amount > 1000) return `${sym} ${Math.round(amount).toLocaleString()}`;
+  if (amount > 10) return `${sym} ${amount.toFixed(1)}`;
+  return `${sym} ${amount.toFixed(2)}`;
+}
+
+function buildConvertedItems(
+  raw: RecognizedItem,
+  rate: number,
+  sourceCurrency: string,
+  targetCurrency: string
+): { label: string; value: string; highlight: boolean }[] {
   const items: { label: string; value: string; highlight: boolean }[] = [];
   const price = raw.price;
   const unit = raw.unit || 'each';
-  const twdPrice = price * rate;
+  const srcFlag = CURRENCY_FLAGS[sourceCurrency] || '';
+  const tgtFlag = CURRENCY_FLAGS[targetCurrency] || '';
+  const srcSym = CURRENCY_SYMBOLS[sourceCurrency] || sourceCurrency;
 
-  items.push({ label: '美元價格', value: `US$ ${price.toFixed(2)} / ${UNIT_NAMES[unit] || unit}`, highlight: false });
-  items.push({ label: '台幣價格', value: `NT$ ${twdPrice.toFixed(1)}`, highlight: true });
+  const converted = price * rate;
 
+  // Original price
+  const unitLabel = unit === 'each' ? '' : ` / ${unit.replace('per_', '')}`;
+  items.push({
+    label: `${srcFlag} 原始價格`,
+    value: price > 1000 ? `${srcSym} ${Math.round(price).toLocaleString()}${unitLabel}` : `${srcSym} ${price.toFixed(2)}${unitLabel}`,
+    highlight: false,
+  });
+
+  // Converted price
+  items.push({
+    label: `${tgtFlag} 換算價格`,
+    value: fmtPrice(converted, targetCurrency),
+    highlight: true,
+  });
+
+  // Weight/volume conversions (only if not "each")
   if (unit === 'each') {
-    // No weight conversion needed
-  } else if (unit === 'per_gallon' || unit === 'per_qt' || unit === 'per_liter' || unit === 'per_floz') {
+    // No further conversion needed
+  } else if (['per_gallon', 'per_qt', 'per_liter', 'per_floz'].includes(unit)) {
     const ml = CONVERSIONS[unit] || 1000;
-    const twdPerL = (twdPrice / ml) * 1000;
-    items.push({ label: '每公升', value: `NT$ ${twdPerL.toFixed(1)}`, highlight: false });
-    items.push({ label: '每 100mL', value: `NT$ ${(twdPerL / 10).toFixed(1)}`, highlight: false });
+    const tgtPerL = (converted / ml) * 1000;
+    items.push({ label: '每公升', value: fmtPrice(tgtPerL, targetCurrency), highlight: false });
+    items.push({ label: '每 100mL', value: fmtPrice(tgtPerL / 10, targetCurrency), highlight: false });
   } else {
     const grams = CONVERSIONS[unit] || 1;
-    const twdPerG = twdPrice / grams;
-    items.push({ label: '每台斤 (600g)', value: `NT$ ${(twdPerG * 600).toFixed(1)}`, highlight: true });
-    items.push({ label: '每 100g', value: `NT$ ${(twdPerG * 100).toFixed(1)}`, highlight: false });
-    items.push({ label: '每公斤', value: `NT$ ${(twdPerG * 1000).toFixed(1)}`, highlight: false });
+    const tgtPerG = converted / grams;
+    items.push({ label: '每台斤 (600g)', value: fmtPrice(tgtPerG * 600, targetCurrency), highlight: true });
+    items.push({ label: '每 100g', value: fmtPrice(tgtPerG * 100, targetCurrency), highlight: false });
+    items.push({ label: '每公斤', value: fmtPrice(tgtPerG * 1000, targetCurrency), highlight: false });
   }
 
   return items;
 }
 
-const SYSTEM_PROMPT = `你是一個海外購物e��格辨識助手。請仔細辨識照片中的所有商品和價格。
+function buildSystemPrompt(sourceCurrency: string): string {
+  return `你是一個海外購物價格辨識助手。請仔細辨識照片中的所有商品和價格。
+
+使用者預期看到的幣別是 ${sourceCurrency}，但請根據照片中實際顯示的幣別來辨識。如果照片中看不出幣別，請預設為 ${sourceCurrency}。
 
 對於每個辨識到的項目，回傳以下格式的 JSON：
 
 {
   "items": [
     {
-      "name": "商品英文名稱（保留原文）",
-      "price": 數字（不含貨幣符號），
+      "name": "商品名稱（保留原文，可加中文翻譯在括號中）",
+      "price": 數字（不含貨幣符號）,
       "unit": "計價單位",
       "currency": "幣別代碼"
     }
@@ -73,18 +124,30 @@ unit 允許的值：
 - "per_gallon" — 每加侖
 - "per_liter" — 每公升
 - "per_floz" — 每液體盎司
-- "each" — 每個/每件/每包
+- "each" — 每個/每件/每包/每份/每杯/每盤
 
+currency 允許的值：USD, EUR, GBP, JPY, KRW, CNY, THB, VND, SGD, MYR, AUD, CAD, HKD, PHP, IDR, TWD
+
+如果是菜單（menu），每道菜或飲品都算一個項目。
+如果是超市標價，每個商品標籤算一個項目。
 如果無法確定計價單位，使用 "each"。
-如果無法確定幣別，預設 "USD"。
 只回傳純 JSON，不要有任何額外文字或 markdown 標記。`;
+}
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const { image, mimeType } = await context.request.json() as {
+    const body = await context.request.json() as {
       image: string;
       mimeType: string;
+      sourceCurrency?: string;
+      targetCurrency?: string;
+      rate?: number;
     };
+
+    const { image, mimeType } = body;
+    const sourceCurrency = body.sourceCurrency || 'USD';
+    const targetCurrency = body.targetCurrency || 'TWD';
+    const rate = body.rate || getDefaultRate(sourceCurrency, targetCurrency);
 
     if (!image) {
       return new Response(
@@ -103,7 +166,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const base64Data = image.includes(',') ? image.split(',')[1] : image;
     const mime = mimeType || 'image/jpeg';
-    const rate = 32.5;
 
     const geminiResp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -113,7 +175,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         body: JSON.stringify({
           contents: [{
             parts: [
-              { text: SYSTEM_PROMPT },
+              { text: buildSystemPrompt(sourceCurrency) },
               { inlineData: { mimeType: mime, data: base64Data } },
             ],
           }],
@@ -149,28 +211,42 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       );
     }
 
-    const rawItems = (parsed.items || []).map((item) => ({
+    const recognizedItems = (parsed.items || []).map((item) => ({
       name: item.name || 'Unknown Item',
       price: typeof item.price === 'number' ? item.price : parseFloat(String(item.price)) || 0,
       unit: item.unit || 'each',
-      currency: item.currency || 'USD',
+      currency: item.currency || sourceCurrency,
     }));
 
-    // Build response in the format the frontend expects
-    // Use the first item as the main product, format all items' conversions
-    const product = rawItems.length > 0 ? rawItems[0].name : '';
-    const allItems: { label: string; value: string; highlight: boolean }[] = [];
-
-    for (const raw of rawItems) {
-      if (rawItems.length > 1) {
-        // Multiple items: add a separator-like header
-        allItems.push({ label: raw.name, value: `US$ ${raw.price.toFixed(2)}`, highlight: false });
+    // Build response with per-item conversions
+    const responseItems = recognizedItems.map((raw) => {
+      // If the recognized currency differs from the user's selected source, recalculate rate
+      let itemRate = rate;
+      if (raw.currency !== sourceCurrency) {
+        itemRate = getDefaultRate(raw.currency, targetCurrency);
       }
-      allItems.push(...formatItems(raw, rate));
-    }
+
+      return {
+        name: raw.name,
+        originalPrice: raw.price,
+        unit: raw.unit,
+        currency: raw.currency,
+        convertedItems: buildConvertedItems(
+          { ...raw },
+          itemRate,
+          raw.currency,
+          targetCurrency
+        ),
+      };
+    });
 
     return new Response(
-      JSON.stringify({ product, items: allItems, rate }),
+      JSON.stringify({
+        items: responseItems,
+        rate,
+        sourceCurrency,
+        targetCurrency,
+      }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
 
