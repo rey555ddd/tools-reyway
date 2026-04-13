@@ -33,9 +33,12 @@
         }
         html{scroll-behavior:smooth}
         body{
-            font-family:'Inter','Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif;
+            font-family:'Inter',-apple-system,BlinkMacSystemFont,'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
             background:var(--bg);color:var(--text);
-            min-height:100vh;-webkit-font-smoothing:antialiased;
+            min-height:100vh;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+            text-rendering:optimizeLegibility;
+            font-feature-settings:'cv11','ss01';
+            letter-spacing:0.005em;
             overflow-x:hidden;
         }
         ::selection{background:rgba(74,127,247,0.12)}
