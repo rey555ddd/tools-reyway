@@ -795,7 +795,24 @@
             if (!selectedFile) return;
             const background = selectedPreset || customPrompt.value.trim() || 'white';
             generateBtn.classList.add('loading'); generateBtn.disabled = true;
-            generateBtn.textContent = '生成中，請稍候…';
+
+            const stages = [
+                { at: 0,  text: '上傳圖片中…' },
+                { at: 3,  text: 'AI 分析商品輪廓…' },
+                { at: 10, text: '去背處理中…' },
+                { at: 20, text: '合成情境背景…' },
+                { at: 35, text: '調整光影細節… (通常 30-60 秒)' },
+                { at: 50, text: '最後渲染中，請再稍候…' },
+                { at: 70, text: '快完成了，模型最後收尾…' },
+            ];
+            const startTs = Date.now();
+            const updateBtn = () => {
+                const elapsed = Math.floor((Date.now() - startTs) / 1000);
+                const stage = stages.slice().reverse().find(s => elapsed >= s.at) || stages[0];
+                generateBtn.textContent = `${stage.text} (${elapsed}s)`;
+            };
+            updateBtn();
+            const progressTimer = setInterval(updateBtn, 1000);
 
             try {
                 if (!compressedBase64) throw new Error('圖片尚未處理完成，請稍候再試');
@@ -835,6 +852,7 @@
                 console.error('Generation error:', error);
                 alert('生成失敗：' + (error.message || '請稍後重試'));
             } finally {
+                clearInterval(progressTimer);
                 generateBtn.classList.remove('loading');
                 generateBtn.disabled = false;
                 generateBtn.textContent = '生成情境圖';
