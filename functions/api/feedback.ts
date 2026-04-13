@@ -6,6 +6,7 @@
 interface Env {
   LINE_CHANNEL_ACCESS_TOKEN?: string;
   LINE_USER_ID?: string;
+  FEEDBACK_KV?: KVNamespace;
 }
 
 async function pushToLine(env: Env, text: string): Promise<void> {
@@ -83,10 +84,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ip: context.request.headers.get('cf-connecting-ip') || 'unknown',
     };
 
-    // 印 log 備援（萬一 LINE 失敗也有紀錄）
+    // 印 log 備援（萬一 LINE/KV 失敗也有紀錄）
     console.log('========== TOOLS-REYWAY FEEDBACK ==========');
     console.log(JSON.stringify(cleaned, null, 2));
     console.log('===========================================');
+
+    // 寫進 KV（首頁許願池讀這裡）
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    if (context.env.FEEDBACK_KV) {
+      try {
+        await context.env.FEEDBACK_KV.put(
+          `feedback:${id}`,
+          JSON.stringify({ id, ...cleaned }),
+          { expirationTtl: 60 * 60 * 24 * 180 } // 180 天自動過期
+        );
+      } catch (e) { console.error('KV write failed:', e); }
+    }
 
     // Push 到 LINE
     const lineText = formatLineMessage(cleaned);

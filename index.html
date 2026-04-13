@@ -272,6 +272,59 @@
         .modal-success h3{color:var(--green);margin-bottom:8px}
         .modal-success p{color:var(--text-secondary);font-size:0.9rem}
 
+        /* ===== Wishlist (許願池) ===== */
+        .wishlist-section{margin:40px 0 24px;padding:0}
+        .wishlist-header{
+            display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:16px;padding:0 4px;
+        }
+        .wishlist-title{
+            font-size:1.05rem;font-weight:600;color:var(--text);
+            display:flex;align-items:center;gap:8px;
+        }
+        .wishlist-count{
+            background:var(--primary-soft);color:var(--primary);
+            padding:2px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;
+        }
+        .wishlist-empty{
+            text-align:center;padding:32px 16px;
+            background:var(--surface);border:1px dashed var(--border);
+            border-radius:var(--radius);color:var(--text-tertiary);
+            font-size:0.85rem;
+        }
+        .wishlist-list{display:flex;flex-direction:column;gap:10px}
+        .wish-item{
+            background:var(--surface);border:1px solid var(--border);
+            border-radius:var(--radius-sm);padding:14px 18px;
+            backdrop-filter:var(--blur);
+            font-size:0.85rem;line-height:1.6;
+            position:relative;
+        }
+        .wish-meta{
+            display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+            font-size:0.72rem;color:var(--text-tertiary);
+            margin-bottom:6px;
+        }
+        .wish-meta .who{color:var(--primary);font-weight:600;font-size:0.78rem}
+        .wish-tag{
+            background:var(--primary-soft);color:var(--primary);
+            padding:1px 7px;border-radius:6px;font-size:0.68rem;
+        }
+        .wish-text{color:var(--text);white-space:pre-wrap;word-break:break-word}
+        .wish-empty-text{color:var(--text-tertiary);font-style:italic;font-size:0.8rem}
+        .wish-contact{
+            margin-top:6px;font-size:0.72rem;color:var(--text-secondary);
+            border-top:1px dashed var(--border);padding-top:6px;
+        }
+        .wish-delete{
+            position:absolute;top:10px;right:12px;
+            background:transparent;border:none;
+            color:var(--text-tertiary);font-size:0.78rem;
+            cursor:pointer;padding:4px 8px;border-radius:6px;
+            transition:all 0.2s;
+        }
+        .wish-delete:hover{background:#fee2e2;color:#dc2626}
+
         /* ===== Footer ===== */
         footer{text-align:center;padding:0 0 48px}
         footer p{font-size:0.68rem;color:var(--text-tertiary);letter-spacing:1.5px;font-weight:300}
@@ -347,6 +400,17 @@
                 <span class="tool-arrow">&#8594;</span>
             </a>
         </div>
+
+        <!-- 許願池 -->
+        <section class="wishlist-section" id="wishlist-section">
+            <div class="wishlist-header">
+                <div class="wishlist-title">
+                    <span>🌟</span><span>許願池</span>
+                    <span class="wishlist-count" id="wishlist-count" style="display:none;">0</span>
+                </div>
+            </div>
+            <div id="wishlist-content"></div>
+        </section>
 
         <!-- Feedback Modal -->
         <div class="modal-overlay" id="feedback-modal">
@@ -458,6 +522,7 @@
                     if (!resp.ok) throw new Error('送出失敗');
                     formView.style.display = 'none';
                     successView.style.display = 'block';
+                    setTimeout(loadWishlist, 800);
                 } catch (err) {
                     alert('送出失敗，請稍後再試。如急著聯絡笙哥，請直接傳 LINE 給他。');
                 } finally {
@@ -465,6 +530,96 @@
                     submitBtn.textContent = '送出建議';
                 }
             });
+        })();
+
+        // ===== 許願池 =====
+        (function () {
+            const adminToken = new URLSearchParams(location.search).get('admin') || '';
+            const content = document.getElementById('wishlist-content');
+            const countEl = document.getElementById('wishlist-count');
+
+            function escapeHtml(s) {
+                return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+            }
+            function fmtTime(iso) {
+                if (!iso) return '';
+                try {
+                    const d = new Date(iso);
+                    const now = new Date();
+                    const diffH = (now - d) / 3600000;
+                    if (diffH < 1) return Math.round(diffH * 60) + ' 分鐘前';
+                    if (diffH < 24) return Math.round(diffH) + ' 小時前';
+                    if (diffH < 24 * 7) return Math.round(diffH / 24) + ' 天前';
+                    return d.toLocaleDateString('zh-TW');
+                } catch { return ''; }
+            }
+
+            async function loadWishlist() {
+                try {
+                    const resp = await fetch('/api/feedback-list' + (adminToken ? '?admin=' + encodeURIComponent(adminToken) : ''));
+                    if (!resp.ok) throw new Error();
+                    const data = await resp.json();
+                    render(data.items || [], data.isAdmin);
+                } catch {
+                    content.innerHTML = '<div class="wishlist-empty">許願池暫時無法載入</div>';
+                }
+            }
+
+            function render(items, isAdmin) {
+                if (!items.length) {
+                    content.innerHTML = '<div class="wishlist-empty">還沒有人許願，期待你的第一個點子 🌱</div>';
+                    countEl.style.display = 'none';
+                    return;
+                }
+                countEl.textContent = items.length;
+                countEl.style.display = 'inline-block';
+
+                content.innerHTML = '<div class="wishlist-list">' + items.map(it => {
+                    const tags = [...(it.usage || []), ...(it.type || [])].slice(0, 6);
+                    const tagsHtml = tags.map(t => `<span class="wish-tag">${escapeHtml(t)}</span>`).join('');
+                    const text = it.text
+                        ? `<div class="wish-text">${escapeHtml(it.text)}</div>`
+                        : `<div class="wish-empty-text">（沒有寫文字，只勾選了標籤）</div>`;
+                    const contact = (isAdmin && it.contact)
+                        ? `<div class="wish-contact">📞 ${escapeHtml(it.contact)}</div>`
+                        : '';
+                    const delBtn = isAdmin
+                        ? `<button class="wish-delete" data-id="${escapeHtml(it.id)}">✕ 刪除</button>`
+                        : '';
+                    return `<div class="wish-item">
+                        ${delBtn}
+                        <div class="wish-meta">
+                            ${it.name ? `<span class="who">${escapeHtml(it.name)}</span>` : '<span class="who">匿名朋友</span>'}
+                            <span>·</span>
+                            <span>${fmtTime(it.ts)}</span>
+                            ${tagsHtml}
+                        </div>
+                        ${text}
+                        ${contact}
+                    </div>`;
+                }).join('') + '</div>';
+
+                if (isAdmin) {
+                    content.querySelectorAll('.wish-delete').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            if (!confirm('確定刪除這則許願？')) return;
+                            const id = btn.dataset.id;
+                            try {
+                                const r = await fetch('/api/feedback-delete', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ id, token: adminToken })
+                                });
+                                if (!r.ok) throw new Error();
+                                loadWishlist();
+                            } catch { alert('刪除失敗'); }
+                        });
+                    });
+                }
+            }
+
+            window.loadWishlist = loadWishlist;
+            loadWishlist();
         })();
         </script>
 
