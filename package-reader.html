@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>包裝拍照解讀 — 笙闆的AI工具箱</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #f8f9fc;
+    --surface: rgba(255,255,255,0.85);
+    --border: rgba(0,0,0,0.08);
+    --text: #1f2937;
+    --text-secondary: #4b5563;
+    --text-tertiary: #9ca3af;
+    --primary: #8b6cc1;
+    --primary-hover: #7a5bb0;
+    --primary-soft: rgba(139,108,193,0.1);
+    --warn: #d97706;
+    --warn-soft: #fef3c7;
+    --danger: #dc2626;
+    --danger-soft: #fee2e2;
+    --ok: #059669;
+    --ok-soft: #d1fae5;
+  }
+  html, body {
+    width: 100%;
+    font-family: 'Noto Sans TC', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 17px; /* 長輩友善：基準字級加大 */
+    line-height: 1.7;
+  }
+  body { min-height: 100vh; padding: 24px 16px 80px; }
+
+  .container { max-width: 720px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 32px; }
+  header h1 { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: 1px; }
+  header p { color: var(--text-secondary); margin-top: 8px; font-size: 16px; }
+  .back-link { display: inline-block; color: var(--primary); text-decoration: none; font-size: 14px; margin-bottom: 20px; }
+  .back-link:hover { text-decoration: underline; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .card h2 {
+    font-size: 18px; font-weight: 600; margin-bottom: 16px;
+    color: var(--text); display: flex; align-items: center; gap: 10px;
+  }
+  .card h2 .icon {
+    background: var(--primary-soft); color: var(--primary);
+    width: 32px; height: 32px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  /* 步驟標題 */
+  .step { font-size: 13px; color: var(--primary); font-weight: 600; letter-spacing: 1px; margin-bottom: 8px; }
+
+  /* 分類選擇 */
+  .category-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-top: 8px;
+  }
+  .category-btn {
+    background: white; border: 2px solid var(--border);
+    border-radius: 14px; padding: 16px 12px;
+    cursor: pointer; font-family: inherit; font-size: 16px;
+    color: var(--text); transition: all 0.2s;
+    text-align: center; font-weight: 500;
+  }
+  .category-btn .emoji { font-size: 28px; display: block; margin-bottom: 6px; }
+  .category-btn:hover { border-color: var(--primary); }
+  .category-btn.active {
+    background: var(--primary-soft); border-color: var(--primary); color: var(--primary);
+  }
+
+  /* 上傳區 */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 16px;
+    padding: 40px 20px; text-align: center; cursor: pointer;
+    transition: all 0.2s; background: white;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--primary); background: var(--primary-soft);
+  }
+  .upload-zone .big-icon { font-size: 56px; margin-bottom: 12px; }
+  .upload-zone .main-text { font-size: 18px; font-weight: 600; color: var(--text); }
+  .upload-zone .sub-text { font-size: 14px; color: var(--text-secondary); margin-top: 6px; }
+  .upload-zone input[type="file"] { display: none; }
+
+  .preview-area { display: none; }
+  .preview-area.visible { display: block; }
+  .preview-img {
+    width: 100%; max-height: 320px; object-fit: contain;
+    border-radius: 12px; background: #000; margin-bottom: 12px;
+  }
+  .preview-actions { display: flex; gap: 10px; }
+  .btn {
+    flex: 1; padding: 14px 20px; border-radius: 12px;
+    font-family: inherit; font-size: 16px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--primary); color: white;
+  }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-primary:disabled { background: var(--text-tertiary); cursor: not-allowed; }
+  .btn-secondary {
+    background: white; color: var(--text-secondary); border: 1.5px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--text-tertiary); }
+
+  /* 結果區 */
+  .result-area { display: none; }
+  .result-area.visible { display: block; }
+
+  .product-name {
+    font-size: 24px; font-weight: 700; color: var(--text);
+    margin-bottom: 4px;
+  }
+  .product-name-original {
+    font-size: 14px; color: var(--text-tertiary); margin-bottom: 16px;
+  }
+  .summary-box {
+    background: var(--primary-soft); border-left: 4px solid var(--primary);
+    padding: 16px 20px; border-radius: 12px;
+    font-size: 17px; line-height: 1.7; color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .info-section { margin-bottom: 20px; }
+  .info-section:last-child { margin-bottom: 0; }
+  .info-label {
+    font-size: 14px; font-weight: 600; color: var(--text-secondary);
+    margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+  }
+  .info-content { font-size: 16px; line-height: 1.8; color: var(--text); }
+  .info-list { list-style: none; padding: 0; }
+  .info-list li {
+    padding: 8px 0 8px 24px; position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-list li:last-child { border-bottom: none; }
+  .info-list li::before {
+    content: '•'; position: absolute; left: 8px;
+    color: var(--primary); font-weight: 700;
+  }
+
+  /* 警語特殊樣式 */
+  .warning-box {
+    background: var(--warn-soft); border: 1.5px solid #fbbf24;
+    padding: 16px 20px; border-radius: 14px;
+  }
+  .warning-box .info-label { color: var(--warn); }
+  .warning-box li::before { content: '⚠'; color: var(--warn); }
+
+  .doctor-advice {
+    background: var(--danger-soft); border-left: 4px solid var(--danger);
+    padding: 14px 18px; border-radius: 10px;
+    font-size: 16px; color: var(--text); margin-top: 16px;
+  }
+  .doctor-advice strong { color: var(--danger); }
+
+  .disclaimer {
+    background: #f3f4f6; border-radius: 12px; padding: 16px;
+    font-size: 14px; line-height: 1.7; color: var(--text-secondary);
+    margin-top: 24px;
+  }
+  .disclaimer strong { color: var(--text); }
+
+  /* 載入中 */
+  .loading-state {
+    display: none; text-align: center; padding: 40px 20px;
+    background: white; border-radius: 16px;
+  }
+  .loading-state.visible { display: block; }
+  .loading-spinner {
+    width: 48px; height: 48px; border: 4px solid var(--primary-soft);
+    border-top-color: var(--primary); border-radius: 50%;
+    margin: 0 auto 16px; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 16px; color: var(--text-secondary); }
+
+  @media (max-width: 480px) {
+    body { padding: 16px 12px 60px; font-size: 16px; }
+    header h1 { font-size: 24px; }
+    .card { padding: 18px; }
+    .category-grid { grid-template-columns: repeat(2, 1fr); }
+    .product-name { font-size: 20px; }
+  }
+
+  footer { text-align: center; margin-top: 40px; color: var(--text-tertiary); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="/" class="back-link">← 回工具箱首頁</a>
+
+  <header>
+    <h1>📦 包裝拍照解讀</h1>
+    <p>看不懂藥品/保健品/食品的包裝小字？拍一張照片，AI 用白話告訴你</p>
+  </header>
+
+  <!-- Step 1：選類別 -->
+  <div class="card">
+    <h2><span class="icon">1</span>選擇商品類別</h2>
+    <div class="category-grid" id="category-grid">
+      <button class="category-btn active" data-cat="medicine"><span class="emoji">💊</span>藥品</button>
+      <button class="category-btn" data-cat="supplement"><span class="emoji">🌿</span>保健品</button>
+      <button class="category-btn" data-cat="food"><span class="emoji">🍱</span>食品</button>
+      <button class="category-btn" data-cat="cosmetic"><span class="emoji">🧴</span>保養品</button>
+      <button class="category-btn" data-cat="other"><span class="emoji">📦</span>其他</button>
+    </div>
+  </div>
+
+  <!-- Step 2：上傳照片 -->
+  <div class="card">
+    <h2><span class="icon">2</span>拍照或上傳包裝</h2>
+    <label class="upload-zone" id="upload-zone">
+      <div class="big-icon">📸</div>
+      <div class="main-text">點這裡拍照或選照片</div>
+      <div class="sub-text">拍清楚包裝正面（盡量看清楚字）</div>
+      <input type="file" id="file-input" accept="image/*" capture="environment">
+    </label>
+
+    <div class="preview-area" id="preview-area">
+      <img class="preview-img" id="preview-img" alt="預覽">
+      <div class="preview-actions">
+        <button class="btn btn-secondary" id="reupload-btn">重新上傳</button>
+        <button class="btn btn-primary" id="analyze-btn">開始解讀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 載入中 -->
+  <div class="loading-state" id="loading-state">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loading-text">AI 正在仔細看包裝中…</div>
+  </div>
+
+  <!-- Step 3：結果 -->
+  <div class="result-area" id="result-area">
+    <div class="card">
+      <div class="product-name" id="result-name">—</div>
+      <div class="product-name-original" id="result-name-original"></div>
+      <div class="summary-box" id="result-summary">—</div>
+
+      <div class="info-section" id="section-dosage" style="display:none;">
+        <div class="info-label">💊 劑量/份量</div>
+        <div class="info-content" id="result-dosage"></div>
+      </div>
+
+      <div class="info-section">
+        <div class="info-label">📋 怎麼使用</div>
+        <ul class="info-list" id="result-usage"></ul>
+      </div>
+
+      <div class="info-section">
+        <div class="info-label">🧪 主要成分</div>
+        <ul class="info-list" id="result-ingredients"></ul>
+      </div>
+
+      <div class="warning-box info-section">
+        <div class="info-label">⚠️ 重要注意事項</div>
+        <ul class="info-list" id="result-warnings"></ul>
+      </div>
+
+      <div class="info-section" style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:180px;">
+          <div class="info-label">📅 保存期限</div>
+          <div class="info-content" id="result-expiry">—</div>
+        </div>
+        <div style="flex:1; min-width:180px;">
+          <div class="info-label">🌡 保存方式</div>
+          <div class="info-content" id="result-storage">—</div>
+        </div>
+      </div>
+
+      <div class="doctor-advice" id="result-doctor" style="display:none;">
+        <strong>📌 提醒：</strong><span id="result-doctor-text"></span>
+      </div>
+
+      <div class="disclaimer">
+        <strong>⚖ 免責聲明：</strong>
+        本工具僅將包裝資訊轉為白話說明，<strong>不能取代醫師、藥師或專業人員的建議</strong>。
+        若有任何用藥疑慮、過敏史、慢性病或正在服用其他藥物，請務必先諮詢專業醫療人員。
+        AI 解讀可能有誤，請以包裝原文與專業意見為準。
+      </div>
+
+      <div class="preview-actions" style="margin-top:20px;">
+        <button class="btn btn-secondary" id="restart-btn">解讀另一張</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>笙闆的 AI 工具箱 · Powered by REYWAY</footer>
+</div>
+
+<script>
+(function () {
+  const fileInput = document.getElementById('file-input');
+  const uploadZone = document.getElementById('upload-zone');
+  const previewArea = document.getElementById('preview-area');
+  const previewImg = document.getElementById('preview-img');
+  const reuploadBtn = document.getElementById('reupload-btn');
+  const analyzeBtn = document.getElementById('analyze-btn');
+  const restartBtn = document.getElementById('restart-btn');
+  const loadingState = document.getElementById('loading-state');
+  const loadingText = document.getElementById('loading-text');
+  const resultArea = document.getElementById('result-area');
+  const categoryGrid = document.getElementById('category-grid');
+
+  let selectedCategory = 'medicine';
+  let compressedBase64 = null;
+
+  // 類別切換
+  categoryGrid.addEventListener('click', (e) => {
+    const btn = e.target.closest('.category-btn');
+    if (!btn) return;
+    [...categoryGrid.children].forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedCategory = btn.dataset.cat;
+  });
+
+  // 拖放
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault(); uploadZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+  });
+
+  function compressImage(file, maxSize = 1536, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          const ratio = Math.min(maxSize / width, maxSize / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve({ dataUrl, base64: dataUrl.split(',')[1] });
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  async function handleFile(file) {
+    if (!file.type.startsWith('image/')) { alert('請選圖片檔'); return; }
+    if (file.size > 20 * 1024 * 1024) { alert('檔案超過 20MB'); return; }
+
+    uploadZone.style.display = 'none';
+    previewArea.classList.add('visible');
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = '處理圖片中…';
+
+    try {
+      const r = await compressImage(file);
+      compressedBase64 = r.base64;
+      previewImg.src = r.dataUrl;
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = '開始解讀';
+    } catch (err) {
+      alert('圖片處理失敗，請換一張');
+      reset();
+    }
+  }
+
+  function reset() {
+    compressedBase64 = null;
+    fileInput.value = '';
+    uploadZone.style.display = 'block';
+    previewArea.classList.remove('visible');
+    resultArea.classList.remove('visible');
+    loadingState.classList.remove('visible');
+  }
+
+  reuploadBtn.addEventListener('click', reset);
+  restartBtn.addEventListener('click', () => { reset(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  analyzeBtn.addEventListener('click', async () => {
+    if (!compressedBase64) return;
+
+    previewArea.classList.remove('visible');
+    loadingState.classList.add('visible');
+    resultArea.classList.remove('visible');
+
+    const stages = [
+      { at: 0,  text: 'AI 正在仔細看包裝中…' },
+      { at: 4,  text: '辨識文字中…' },
+      { at: 10, text: '理解內容意思中…' },
+      { at: 18, text: '整理重點給您…' },
+      { at: 25, text: '快好了，請再稍候…' },
+    ];
+    const startTs = Date.now();
+    const updateText = () => {
+      const elapsed = Math.floor((Date.now() - startTs) / 1000);
+      const stage = stages.slice().reverse().find(s => elapsed >= s.at) || stages[0];
+      loadingText.textContent = `${stage.text} (${elapsed}s)`;
+    };
+    updateText();
+    const timer = setInterval(updateText, 1000);
+
+    try {
+      const resp = await fetch('/api/package-reader', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: compressedBase64,
+          mimeType: 'image/jpeg',
+          category: selectedCategory
+        })
+      });
+
+      if (!resp.ok) {
+        let msg;
+        if (resp.status === 522 || resp.status === 524 || resp.status === 504) {
+          msg = '辨識逾時，請稍候再試或重拍一張更清楚的照片';
+        } else {
+          const errData = await resp.json().catch(() => ({}));
+          msg = errData.error || `錯誤 ${resp.status}`;
+        }
+        throw new Error(msg);
+      }
+
+      const data = await resp.json();
+      renderResult(data);
+    } catch (err) {
+      console.error(err);
+      alert('解讀失敗：' + (err.message || '請稍後重試'));
+      previewArea.classList.add('visible');
+    } finally {
+      clearInterval(timer);
+      loadingState.classList.remove('visible');
+    }
+  });
+
+  function renderResult(data) {
+    document.getElementById('result-name').textContent = data.productName || '（無法辨識產品名）';
+    const orig = document.getElementById('result-name-original');
+    if (data.productNameOriginal && data.productNameOriginal !== data.productName) {
+      orig.textContent = data.productNameOriginal;
+      orig.style.display = 'block';
+    } else {
+      orig.style.display = 'none';
+    }
+
+    document.getElementById('result-summary').textContent = data.summary || '—';
+
+    const dosageSec = document.getElementById('section-dosage');
+    if (data.dosage && data.dosage.trim()) {
+      document.getElementById('result-dosage').textContent = data.dosage;
+      dosageSec.style.display = 'block';
+    } else {
+      dosageSec.style.display = 'none';
+    }
+
+    fillList('result-usage', data.usage);
+    fillList('result-ingredients', data.ingredients);
+    fillList('result-warnings', data.warnings);
+
+    document.getElementById('result-expiry').textContent = data.expiry || '請查看包裝上日期';
+    document.getElementById('result-storage').textContent = data.storage || '請依包裝指示保存';
+
+    const doctor = document.getElementById('result-doctor');
+    if (data.doctorAdvice && data.doctorAdvice.trim()) {
+      document.getElementById('result-doctor-text').textContent = data.doctorAdvice;
+      doctor.style.display = 'block';
+    } else {
+      doctor.style.display = 'none';
+    }
+
+    resultArea.classList.add('visible');
+    setTimeout(() => resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+
+  function fillList(id, arr) {
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    if (!arr || !arr.length) {
+      el.innerHTML = '<li style="padding-left:8px; color:var(--text-tertiary);">（包裝上看不清楚或未提及）</li>';
+      return;
+    }
+    arr.forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      el.appendChild(li);
+    });
+  }
+})();
+</script>
+</body>
+</html>
