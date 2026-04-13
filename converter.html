@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>單位換算器 — 笙闆的AI工具箱</title>
-    <meta name="description" content="拍照辨識美國超市標價，自動換算台幣、台斤，一目了然">
+    <title>海外購物助手 — 笙闆的AI工具箱</title>
+    <meta name="description" content="出國購物看到價目表？拍照一秒辨識金額，自動換算成你熟悉的幣值">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --bg: #f8f9fc;
             --surface: rgba(255, 255, 255, 0.72);
+            --surface-solid: #ffffff;
             --border: rgba(0, 0, 0, 0.06);
             --border-hover: rgba(0, 0, 0, 0.12);
             --text: #111827;
@@ -37,506 +34,197 @@
             overflow-x: hidden;
         }
 
-        /* Ambient background with orbs */
-        .ambient {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-        }
+        /* Ambient background */
+        .ambient { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.15; }
+        .orb-green { width: 400px; height: 400px; background: linear-gradient(135deg, #3a9a6e 0%, #2e8a5e 100%); top: -100px; right: -100px; animation: drift 8s ease-in-out infinite; }
+        .orb-gold { width: 350px; height: 350px; background: linear-gradient(135deg, #d4a574 0%, #c89968 100%); bottom: 100px; left: -50px; animation: drift-alt 10s ease-in-out infinite; }
+        @keyframes drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, -50px); } }
+        @keyframes drift-alt { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-40px, 60px); } }
 
-        .orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.15;
-        }
-
-        .orb-green {
-            width: 400px;
-            height: 400px;
-            background: linear-gradient(135deg, #3a9a6e 0%, #2e8a5e 100%);
-            top: -100px;
-            right: -100px;
-            animation: drift 8s ease-in-out infinite;
-        }
-
-        .orb-gold {
-            width: 350px;
-            height: 350px;
-            background: linear-gradient(135deg, #d4a574 0%, #c89968 100%);
-            bottom: 100px;
-            left: -50px;
-            animation: drift-alt 10s ease-in-out infinite;
-        }
-
-        @keyframes drift {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(30px, -50px); }
-        }
-
-        @keyframes drift-alt {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(-40px, 60px); }
-        }
-
-        /* Noise overlay */
         .noise {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            background-image:
-                url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' result='noise'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
-            z-index: 1;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' result='noise'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
         }
 
-        /* Main container */
-        .container {
-            position: relative;
-            z-index: 2;
-            max-width: 680px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
+        .container { position: relative; z-index: 2; max-width: 680px; margin: 0 auto; padding: 40px 20px; }
 
         /* Header */
-        .header {
-            margin-bottom: 50px;
-            animation: fadeUp 0.8s ease-out;
-        }
-
+        .header { margin-bottom: 40px; animation: fadeUp 0.8s ease-out; }
         .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 24px;
-            transition: color 0.3s var(--ease);
+            display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary);
+            text-decoration: none; font-size: 14px; font-weight: 500; margin-bottom: 24px; transition: color 0.3s var(--ease);
         }
-
-        .back-link:hover {
-            color: var(--primary);
-        }
-
-        .back-link svg {
-            width: 16px;
-            height: 16px;
-            stroke: currentColor;
-        }
-
-        h1 {
-            font-size: 42px;
-            font-weight: 700;
-            line-height: 1.2;
-            margin-bottom: 12px;
-            letter-spacing: -0.5px;
-        }
-
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 16px;
-            font-weight: 400;
-        }
+        .back-link:hover { color: var(--primary); }
+        .back-link svg { width: 16px; height: 16px; stroke: currentColor; }
+        h1 { font-size: 42px; font-weight: 700; line-height: 1.2; margin-bottom: 12px; letter-spacing: -0.5px; }
+        .subtitle { color: var(--text-secondary); font-size: 16px; font-weight: 400; }
 
         /* Mode selector */
         .mode-selector {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 36px;
-            padding: 8px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            backdrop-filter: var(--blur);
-            width: fit-content;
-            animation: fadeUp 0.8s ease-out 0.1s both;
+            display: flex; gap: 12px; margin-bottom: 28px; padding: 8px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+            backdrop-filter: var(--blur); width: fit-content; animation: fadeUp 0.8s ease-out 0.1s both;
         }
-
         .mode-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 100px;
-            background: transparent;
-            color: var(--text-secondary);
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s var(--ease);
-            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            padding: 10px 20px; border: none; border-radius: 100px; background: transparent;
+            color: var(--text-secondary); font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: all 0.3s var(--ease); font-family: 'Inter', 'Noto Sans TC', sans-serif;
         }
+        .mode-btn:hover { color: var(--text); }
+        .mode-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 16px rgba(58, 154, 110, 0.2); }
 
-        .mode-btn:hover {
-            color: var(--text);
+        /* Currency settings card */
+        .currency-settings {
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+            backdrop-filter: var(--blur); padding: 24px; margin-bottom: 24px; animation: fadeUp 0.8s ease-out 0.15s both;
         }
-
-        .mode-btn.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 4px 16px rgba(58, 154, 110, 0.2);
+        .currency-settings-title {
+            font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
         }
+        .currency-row { display: flex; gap: 12px; align-items: center; }
+        .currency-field { flex: 1; }
+        .currency-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-tertiary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .currency-select {
+            width: 100%; padding: 12px 14px; background: var(--surface-solid); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); font-size: 15px; color: var(--text);
+            font-family: 'Inter', 'Noto Sans TC', sans-serif; transition: all 0.3s var(--ease);
+            cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23111827' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px;
+        }
+        .currency-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+        .currency-arrow {
+            flex-shrink: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+            color: var(--text-tertiary); font-size: 20px; margin-top: 18px;
+        }
+        .rate-display {
+            margin-top: 12px; font-size: 13px; color: var(--text-tertiary); display: flex; align-items: center; gap: 8px;
+        }
+        .rate-display input {
+            width: 80px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 8px;
+            font-size: 13px; color: var(--text); font-family: 'Inter', sans-serif; text-align: center;
+            background: var(--surface-solid); transition: all 0.3s var(--ease);
+        }
+        .rate-display input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
 
         /* Photo Panel */
-        #photoPanel {
-            animation: fadeUp 0.8s ease-out 0.2s both;
-        }
-
+        #photoPanel { animation: fadeUp 0.8s ease-out 0.2s both; }
         .upload-zone {
-            border: 2px dashed var(--border-hover);
-            border-radius: var(--radius);
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s var(--ease);
-            background: var(--surface);
-            backdrop-filter: var(--blur);
-            margin-bottom: 20px;
+            border: 2px dashed var(--border-hover); border-radius: var(--radius); padding: 40px;
+            text-align: center; cursor: pointer; transition: all 0.3s var(--ease);
+            background: var(--surface); backdrop-filter: var(--blur); margin-bottom: 20px;
         }
-
-        .upload-zone:hover {
-            border-color: var(--primary);
-            background: rgba(58, 154, 110, 0.03);
-        }
-
-        .upload-zone.dragover {
-            border-color: var(--primary);
-            background: var(--primary-soft);
-            transform: scale(1.02);
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        .upload-text {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 4px;
-        }
-
-        .upload-subtext {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        #fileInput {
-            display: none;
-        }
-
-        .preview-area {
-            display: none;
-            opacity: 0;
-            transition: opacity 0.3s var(--ease);
-        }
-
-        .preview-area.visible {
-            display: block;
-            opacity: 1;
-        }
-
-        .preview-container {
-            position: relative;
-            margin-bottom: 20px;
-            border-radius: var(--radius);
-            overflow: hidden;
-            border: 1px solid var(--border);
-            backdrop-filter: var(--blur);
-            background: var(--surface);
-        }
-
-        #previewImg {
-            display: block;
-            width: 100%;
-            height: auto;
-            max-height: 400px;
-            object-fit: cover;
-        }
-
+        .upload-zone:hover { border-color: var(--primary); background: rgba(58, 154, 110, 0.03); }
+        .upload-zone.dragover { border-color: var(--primary); background: var(--primary-soft); transform: scale(1.02); }
+        .upload-icon { font-size: 48px; margin-bottom: 16px; }
+        .upload-text { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+        .upload-subtext { font-size: 14px; color: var(--text-secondary); }
+        #fileInput { display: none; }
+        .preview-area { display: none; opacity: 0; transition: opacity 0.3s var(--ease); }
+        .preview-area.visible { display: block; opacity: 1; }
+        .preview-container { position: relative; margin-bottom: 20px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); backdrop-filter: var(--blur); background: var(--surface); }
+        #previewImg { display: block; width: 100%; height: auto; max-height: 400px; object-fit: cover; }
         .remove-btn {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.5);
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
+            position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5); border: none; color: white; font-size: 20px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;
         }
-
-        .remove-btn:hover {
-            background: rgba(0, 0, 0, 0.7);
-            transform: scale(1.1);
-        }
-
-        #photoAction {
-            display: none;
-        }
-
+        .remove-btn:hover { background: rgba(0, 0, 0, 0.7); transform: scale(1.1); }
+        #photoAction { display: none; }
         .analyze-btn {
-            width: 100%;
-            padding: 16px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 100px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s var(--ease);
-            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            width: 100%; padding: 16px; background: var(--primary); color: white; border: none;
+            border-radius: 100px; font-size: 16px; font-weight: 600; cursor: pointer;
+            transition: all 0.3s var(--ease); font-family: 'Inter', 'Noto Sans TC', sans-serif;
             box-shadow: 0 4px 16px rgba(58, 154, 110, 0.2);
         }
-
-        .analyze-btn:hover:not(:disabled) {
-            background: var(--primary-hover);
-            box-shadow: 0 6px 24px rgba(58, 154, 110, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .analyze-btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
+        .analyze-btn:hover:not(:disabled) { background: var(--primary-hover); box-shadow: 0 6px 24px rgba(58, 154, 110, 0.3); transform: translateY(-2px); }
+        .analyze-btn:disabled { opacity: 0.7; cursor: not-allowed; }
         .analyze-btn.loading::after {
-            content: '';
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            margin-left: 8px;
-            border: 2px solid white;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
+            content: ''; display: inline-block; width: 14px; height: 14px; margin-left: 8px;
+            border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite;
         }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         /* Manual Panel */
-        #manualPanel {
-            display: none;
-            opacity: 0;
-            transition: opacity 0.3s var(--ease);
+        #manualPanel { display: none; opacity: 0; transition: opacity 0.3s var(--ease); }
+        #manualPanel.visible { display: block; opacity: 1; }
+        .form-group { margin-bottom: 20px; animation: fadeUp 0.6s ease-out; }
+        .form-label { display: block; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+        .form-input, .form-select {
+            width: 100%; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); font-size: 16px; color: var(--text);
+            font-family: 'Inter', 'Noto Sans TC', sans-serif; transition: all 0.3s var(--ease); backdrop-filter: var(--blur);
         }
-
-        #manualPanel.visible {
-            display: block;
-            opacity: 1;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-            animation: fadeUp 0.6s ease-out;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 8px;
-        }
-
-        .form-input,
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+        .form-input::placeholder { color: var(--text-tertiary); }
         .form-select {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            font-size: 16px;
-            color: var(--text);
-            font-family: 'Inter', 'Noto Sans TC', sans-serif;
-            transition: all 0.3s var(--ease);
-            backdrop-filter: var(--blur);
-        }
-
-        .form-input:focus,
-        .form-select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-soft);
-        }
-
-        .form-input::placeholder {
-            color: var(--text-tertiary);
-        }
-
-        .form-select {
-            cursor: pointer;
-            appearance: none;
+            cursor: pointer; appearance: none;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23111827' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            padding-right: 40px;
+            background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px;
         }
+
+        .manual-price-row { display: flex; gap: 12px; align-items: flex-end; }
+        .manual-price-row .form-group { flex: 1; margin-bottom: 0; }
+        .manual-price-row .form-group.unit-group { flex: 0 0 140px; }
 
         /* Result Card */
         .result-card {
-            display: none;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.4s var(--ease);
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            backdrop-filter: var(--blur);
-            padding: 28px;
-            margin-top: 28px;
-            animation: fadeUp 0.6s ease-out 0.3s both;
+            display: none; opacity: 0; transform: translateY(10px); transition: all 0.4s var(--ease);
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+            backdrop-filter: var(--blur); padding: 28px; margin-top: 28px;
         }
-
-        .result-card.visible {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .result-product {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 20px;
-            word-break: break-word;
-        }
-
-        .result-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
+        .result-card.visible { display: block; opacity: 1; transform: translateY(0); animation: cardIn 0.5s var(--ease); }
+        .result-product { font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 20px; word-break: break-word; }
+        .result-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
 
         .result-item {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            align-items: center;
-            padding: 12px 14px;
-            background: rgba(0, 0, 0, 0.02);
-            border-radius: var(--radius-sm);
-            transition: all 0.3s var(--ease);
+            display: grid; grid-template-columns: 1fr 1fr; align-items: center; padding: 12px 14px;
+            background: rgba(0, 0, 0, 0.02); border-radius: var(--radius-sm); transition: all 0.3s var(--ease);
         }
+        .result-item:hover { background: rgba(0, 0, 0, 0.04); }
+        .result-item.highlight { background: var(--primary-soft); border: 1px solid rgba(58, 154, 110, 0.2); }
+        .result-item.separator { background: transparent; padding: 16px 14px 4px; border-bottom: 1px solid var(--border); }
+        .result-item.separator .result-item-label { font-size: 15px; font-weight: 700; color: var(--primary); }
+        .result-item-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+        .result-item-value { font-size: 15px; font-weight: 700; color: var(--text); text-align: right; }
+        .result-item.highlight .result-item-value { color: var(--primary); }
 
-        .result-item:hover {
-            background: rgba(0, 0, 0, 0.04);
-        }
+        .result-note { font-size: 13px; color: var(--text-tertiary); border-top: 1px solid var(--border); padding-top: 12px; }
 
-        .result-item.highlight {
-            background: var(--primary-soft);
-            border: 1px solid rgba(58, 154, 110, 0.2);
-        }
-
-        .result-item-label {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .result-item-value {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--text);
-            text-align: right;
-        }
-
-        .result-item.highlight .result-item-value {
-            color: var(--primary);
-        }
-
-        .result-note {
-            font-size: 13px;
-            color: var(--text-tertiary);
-            border-top: 1px solid var(--border);
-            padding-top: 12px;
-        }
+        /* Multiple result cards */
+        .results-container { display: flex; flex-direction: column; gap: 16px; margin-top: 28px; }
+        .results-container .result-card { margin-top: 0; }
 
         /* Animations */
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(16px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes cardIn {
-            from {
-                opacity: 0;
-                scale: 0.95;
-            }
-            to {
-                opacity: 1;
-                scale: 1;
-            }
-        }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes cardIn { from { opacity: 0; scale: 0.95; } to { opacity: 1; scale: 1; } }
 
         /* Footer */
-        .footer {
-            text-align: center;
-            margin-top: 60px;
-            padding-top: 40px;
-            border-top: 1px solid var(--border);
-            font-size: 13px;
-            color: var(--text-tertiary);
-            animation: fadeUp 0.8s ease-out 0.5s both;
-        }
+        .footer { text-align: center; margin-top: 60px; padding-top: 40px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-tertiary); animation: fadeUp 0.8s ease-out 0.5s both; }
 
         /* Responsive */
         @media (max-width: 640px) {
-            .container {
-                padding: 24px 16px;
-            }
-
-            h1 {
-                font-size: 32px;
-            }
-
-            .upload-zone {
-                padding: 28px 20px;
-            }
-
-            .result-item {
-                grid-template-columns: 1fr;
-                gap: 6px;
-            }
-
-            .result-item-value {
-                text-align: left;
-            }
+            .container { padding: 24px 16px; }
+            h1 { font-size: 32px; }
+            .upload-zone { padding: 28px 20px; }
+            .currency-row { flex-direction: column; gap: 8px; }
+            .currency-arrow { transform: rotate(90deg); margin-top: 0; }
+            .manual-price-row { flex-direction: column; gap: 16px; }
+            .manual-price-row .form-group.unit-group { flex: 1; }
+            .result-item { grid-template-columns: 1fr; gap: 6px; }
+            .result-item-value { text-align: left; }
         }
     </style>
 </head>
 <body>
-    <!-- Ambient background -->
     <div class="ambient">
         <div class="orb orb-green"></div>
         <div class="orb orb-gold"></div>
     </div>
     <div class="noise"></div>
 
-    <!-- Main content -->
     <div class="container">
         <!-- Header -->
         <div class="header">
@@ -546,8 +234,8 @@
                 </svg>
                 回到工具箱
             </a>
-            <h1>單位換算器</h1>
-            <p class="subtitle">拍照辨識美國超市標價，自動換算台幣、台斤</p>
+            <h1>海外購物助手</h1>
+            <p class="subtitle">看到菜單或價目表？拍照辨識金額，一秒換算成你熟悉的幣值</p>
         </div>
 
         <!-- Mode selector -->
@@ -556,13 +244,70 @@
             <button class="mode-btn" data-mode="manual">手動換算</button>
         </div>
 
+        <!-- Currency settings (shared by both modes) -->
+        <div class="currency-settings" id="currencySettings">
+            <div class="currency-settings-title">
+                <span>💱</span> 幣值設定
+            </div>
+            <div class="currency-row">
+                <div class="currency-field">
+                    <span class="currency-label">看到的幣值（來源）</span>
+                    <select id="sourceCurrency" class="currency-select">
+                        <option value="USD">🇺🇸 USD 美元</option>
+                        <option value="EUR">🇪🇺 EUR 歐元</option>
+                        <option value="GBP">🇬🇧 GBP 英鎊</option>
+                        <option value="JPY">🇯🇵 JPY 日圓</option>
+                        <option value="KRW">🇰🇷 KRW 韓元</option>
+                        <option value="CNY">🇨🇳 CNY 人民幣</option>
+                        <option value="THB">🇹🇭 THB 泰銖</option>
+                        <option value="VND">🇻🇳 VND 越南盾</option>
+                        <option value="SGD">🇸🇬 SGD 新加坡幣</option>
+                        <option value="MYR">🇲🇾 MYR 馬來西亞幣</option>
+                        <option value="AUD">🇦🇺 AUD 澳幣</option>
+                        <option value="CAD">🇨🇦 CAD 加幣</option>
+                        <option value="HKD">🇭🇰 HKD 港幣</option>
+                        <option value="PHP">🇵🇭 PHP 菲律賓披索</option>
+                        <option value="IDR">🇮🇩 IDR 印尼盾</option>
+                    </select>
+                </div>
+                <div class="currency-arrow">→</div>
+                <div class="currency-field">
+                    <span class="currency-label">換算成（目標）</span>
+                    <select id="targetCurrency" class="currency-select">
+                        <option value="TWD" selected>🇹🇼 TWD 新台幣</option>
+                        <option value="USD">🇺🇸 USD 美元</option>
+                        <option value="EUR">🇪🇺 EUR 歐元</option>
+                        <option value="GBP">🇬🇧 GBP 英鎊</option>
+                        <option value="JPY">🇯🇵 JPY 日圓</option>
+                        <option value="KRW">🇰🇷 KRW 韓元</option>
+                        <option value="CNY">🇨🇳 CNY 人民幣</option>
+                        <option value="THB">🇹🇭 THB 泰銖</option>
+                        <option value="VND">🇻🇳 VND 越南盾</option>
+                        <option value="SGD">🇸🇬 SGD 新加坡幣</option>
+                        <option value="MYR">🇲🇾 MYR 馬來西亞幣</option>
+                        <option value="AUD">🇦🇺 AUD 澳幣</option>
+                        <option value="CAD">🇨🇦 CAD 加幣</option>
+                        <option value="HKD">🇭🇰 HKD 港幣</option>
+                        <option value="PHP">🇵🇭 PHP 菲律賓披索</option>
+                        <option value="IDR">🇮🇩 IDR 印尼盾</option>
+                    </select>
+                </div>
+            </div>
+            <div class="rate-display">
+                <span id="rateLabel">1 USD =</span>
+                <input type="number" id="rateInput" step="0.01" min="0" />
+                <span id="rateTargetLabel">TWD</span>
+                <span style="color:var(--text-tertiary); font-size:12px;">(可手動調整)</span>
+            </div>
+        </div>
+
         <!-- Photo mode -->
         <div id="photoPanel">
             <div id="uploadZone" class="upload-zone">
                 <div class="upload-icon">📷</div>
-                <div class="upload-text">上傳食品標籤</div>
-                <div class="upload-subtext">點擊或拖曳圖片到此</div>
-                <input type="file" id="fileInput" accept="image/*" />
+                <div class="upload-text">拍照或上傳價目表</div>
+                <div class="upload-subtext">菜單、超市標價、商品價格牌都可以</div>
+                <input type="file" id="fileInput" accept="image/*" capture="environment" />
             </div>
 
             <div id="previewArea" class="preview-area">
@@ -573,54 +318,132 @@
             </div>
 
             <div id="photoAction">
-                <button id="btnAnalyze" class="analyze-btn">辨識換算</button>
+                <button id="btnAnalyze" class="analyze-btn">辨識並換算</button>
             </div>
         </div>
 
         <!-- Manual mode -->
         <div id="manualPanel">
-            <div class="form-group">
-                <label class="form-label">美國標價 (US$)</label>
-                <input type="number" id="priceInput" class="form-input" placeholder="例：4.99" step="0.01" min="0" />
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">單位</label>
-                <select id="unitSelect" class="form-select">
-                    <option value="per_lb">每磅 (lb)</option>
-                    <option value="per_oz">每盎司 (oz)</option>
-                    <option value="per_kg">每公斤</option>
-                    <option value="per_100g">每 100g</option>
-                    <option value="each">每個</option>
-                    <option value="per_gallon">每加侖</option>
-                    <option value="per_qt">每夸脫</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">匯率 (1 USD = ? TWD)</label>
-                <input type="number" id="rateInput" class="form-input" placeholder="32.5" step="0.1" min="0" />
+            <div class="manual-price-row">
+                <div class="form-group" style="flex:1;">
+                    <label class="form-label" id="manualPriceLabel">金額</label>
+                    <input type="number" id="priceInput" class="form-input" placeholder="例：4.99" step="0.01" min="0" />
+                </div>
+                <div class="form-group unit-group">
+                    <label class="form-label">計價單位</label>
+                    <select id="unitSelect" class="form-select">
+                        <option value="each">每個/每份</option>
+                        <option value="per_lb">每磅 (lb)</option>
+                        <option value="per_oz">每盎司 (oz)</option>
+                        <option value="per_kg">每公斤</option>
+                        <option value="per_100g">每 100g</option>
+                        <option value="per_gallon">每加侖</option>
+                        <option value="per_qt">每夸脫</option>
+                        <option value="per_liter">每公升</option>
+                    </select>
+                </div>
             </div>
         </div>
 
-        <!-- Result card -->
+        <!-- Result area -->
         <div id="resultCard" class="result-card">
             <div id="resultProduct" class="result-product"></div>
             <div id="resultGrid" class="result-grid"></div>
             <div id="resultNote" class="result-note"></div>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
             笙闆的 AI 工具箱 · Powered by REYWAY
         </div>
     </div>
 
     <script>
+        // ── Currency data ──
+        const CURRENCIES = {
+            USD: { symbol: 'US$', name: '美元', flag: '🇺🇸', toTWD: 32.5 },
+            EUR: { symbol: '€',   name: '歐元', flag: '🇪🇺', toTWD: 35.5 },
+            GBP: { symbol: '£',   name: '英鎊', flag: '🇬🇧', toTWD: 41.0 },
+            JPY: { symbol: '¥',   name: '日圓', flag: '🇯🇵', toTWD: 0.215 },
+            KRW: { symbol: '₩',   name: '韓元', flag: '🇰🇷', toTWD: 0.024 },
+            CNY: { symbol: '¥',   name: '人民幣', flag: '🇨🇳', toTWD: 4.5 },
+            THB: { symbol: '฿',   name: '泰銖', flag: '🇹🇭', toTWD: 0.95 },
+            VND: { symbol: '₫',   name: '越南盾', flag: '🇻🇳', toTWD: 0.0013 },
+            SGD: { symbol: 'S$',  name: '新加坡幣', flag: '🇸🇬', toTWD: 24.5 },
+            MYR: { symbol: 'RM',  name: '馬來西亞幣', flag: '🇲🇾', toTWD: 7.3 },
+            AUD: { symbol: 'A$',  name: '澳幣', flag: '🇦🇺', toTWD: 21.0 },
+            CAD: { symbol: 'C$',  name: '加幣', flag: '🇨🇦', toTWD: 23.5 },
+            HKD: { symbol: 'HK$', name: '港幣', flag: '🇭🇰', toTWD: 4.15 },
+            PHP: { symbol: '₱',   name: '菲律賓披索', flag: '🇵🇭', toTWD: 0.57 },
+            IDR: { symbol: 'Rp',  name: '印尼盾', flag: '🇮🇩', toTWD: 0.002 },
+            TWD: { symbol: 'NT$', name: '新台幣', flag: '🇹🇼', toTWD: 1 },
+        };
+
+        const CONVERSIONS = {
+            per_lb: 453.592, per_oz: 28.3495, per_kg: 1000, per_100g: 100,
+            per_gallon: 3785.41, per_qt: 946.353, per_liter: 1000,
+        };
+
+        const UNIT_NAMES = {
+            per_lb: '每磅 (lb)', per_oz: '每盎司 (oz)', per_kg: '每公斤',
+            per_100g: '每 100g', each: '每個', per_gallon: '每加侖',
+            per_qt: '每夸脫', per_liter: '每公升',
+        };
+
+        // ── State ──
         let currentPanel = 'photo';
         let uploadedBase64 = null;
         let uploadedMime = null;
 
+        // ── Exchange rate helpers ──
+        function getRate() {
+            const src = document.getElementById('sourceCurrency').value;
+            const tgt = document.getElementById('targetCurrency').value;
+            const srcToTWD = CURRENCIES[src]?.toTWD || 1;
+            const tgtToTWD = CURRENCIES[tgt]?.toTWD || 1;
+            return srcToTWD / tgtToTWD;
+        }
+
+        function updateRateDisplay() {
+            const src = document.getElementById('sourceCurrency').value;
+            const tgt = document.getElementById('targetCurrency').value;
+            const rate = getRate();
+            document.getElementById('rateLabel').textContent = `1 ${src} =`;
+            document.getElementById('rateInput').value = rate < 1 ? rate.toFixed(4) : rate.toFixed(2);
+            document.getElementById('rateTargetLabel').textContent = tgt;
+
+            // Update manual mode label
+            const srcInfo = CURRENCIES[src];
+            document.getElementById('manualPriceLabel').textContent = `金額 (${srcInfo?.symbol || src})`;
+
+            // Recalc if manual mode
+            if (currentPanel === 'manual') calcManual();
+        }
+
+        function getUserRate() {
+            const val = parseFloat(document.getElementById('rateInput').value);
+            return (val && val > 0) ? val : getRate();
+        }
+
+        function formatTargetPrice(amount) {
+            const tgt = document.getElementById('targetCurrency').value;
+            const info = CURRENCIES[tgt];
+            const sym = info?.symbol || tgt;
+            // For currencies with very large numbers (VND, IDR, KRW), no decimals
+            if (amount > 1000) return `${sym} ${Math.round(amount).toLocaleString()}`;
+            if (amount > 10) return `${sym} ${amount.toFixed(1)}`;
+            return `${sym} ${amount.toFixed(2)}`;
+        }
+
+        function formatSourcePrice(amount, unit) {
+            const src = document.getElementById('sourceCurrency').value;
+            const info = CURRENCIES[src];
+            const sym = info?.symbol || src;
+            const unitName = UNIT_NAMES[unit] || unit || '';
+            if (amount > 1000) return `${sym} ${Math.round(amount).toLocaleString()} / ${unitName}`;
+            return `${sym} ${amount.toFixed(2)} / ${unitName}`;
+        }
+
+        // ── Mode switching ──
         function switchMode(mode) {
             currentPanel = mode;
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -631,6 +454,7 @@
             if (mode === 'manual') calcManual();
         }
 
+        // ── Photo upload ──
         function triggerUpload() { document.getElementById('fileInput').click(); }
 
         function handleFile(e) {
@@ -671,27 +495,62 @@
             }
         });
 
+        // ── Photo analysis ──
         async function analyzePhoto() {
             if (!uploadedBase64) return;
             const btn = document.getElementById('btnAnalyze');
             btn.classList.add('loading'); btn.disabled = true;
+            btn.textContent = '辨識中…';
             try {
-                const result = await callConverterAPI(uploadedBase64, uploadedMime);
+                const src = document.getElementById('sourceCurrency').value;
+                const tgt = document.getElementById('targetCurrency').value;
+                const rate = getUserRate();
+                const result = await callConverterAPI(uploadedBase64, uploadedMime, src, tgt, rate);
                 renderPhotoResult(result);
-            } catch(e) { renderError('辨識失敗，請確認照片清晰度後再試一次。'); }
+            } catch(e) {
+                renderError('辨識失敗，請確認照片清晰度後再試一次。');
+            }
             btn.classList.remove('loading'); btn.disabled = false;
+            btn.textContent = '辨識並換算';
         }
 
-        async function callConverterAPI(base64, mime) {
+        async function callConverterAPI(base64, mime, sourceCurrency, targetCurrency, rate) {
             const host = window.location.hostname;
             if (host === 'tools.reyway.com') {
-                const r = await fetch('/api/converter', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({image:base64,mimeType:mime}) });
+                const r = await fetch('/api/converter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64, mimeType: mime, sourceCurrency, targetCurrency, rate })
+                });
                 if (!r.ok) throw new Error('API error');
                 return await r.json();
             }
+            // Demo mode
             await new Promise(r => setTimeout(r, 1500));
-            return { demo:true, product:'Organic Blueberries (Demo)', originalPrice:4.99, unit:'per_lb', rate:32.5,
-                items:[{label:'美元價格',value:'US$ 4.99 / lb',highlight:false},{label:'台幣價格',value:'NT$ 162',highlight:true},{label:'每台斤 (600g)',value:'NT$ 214',highlight:true},{label:'每 100g',value:'NT$ 35.7',highlight:false},{label:'每公斤',value:'NT$ 357',highlight:false}]
+            const tgtInfo = CURRENCIES[targetCurrency] || CURRENCIES.TWD;
+            const srcInfo = CURRENCIES[sourceCurrency] || CURRENCIES.USD;
+            const demoPrice = 4.99;
+            const converted = demoPrice * rate;
+            return {
+                demo: true,
+                items: [
+                    {
+                        name: 'Organic Blueberries (Demo)',
+                        originalPrice: demoPrice,
+                        unit: 'per_lb',
+                        currency: sourceCurrency,
+                        convertedItems: [
+                            { label: `${srcInfo.flag} 原始價格`, value: `${srcInfo.symbol} ${demoPrice.toFixed(2)} / lb`, highlight: false },
+                            { label: `${tgtInfo.flag} 換算價格`, value: formatTargetPrice(converted), highlight: true },
+                            { label: '每台斤 (600g)', value: formatTargetPrice((converted / 453.592) * 600), highlight: true },
+                            { label: '每 100g', value: formatTargetPrice((converted / 453.592) * 100), highlight: false },
+                            { label: '每公斤', value: formatTargetPrice((converted / 453.592) * 1000), highlight: false },
+                        ]
+                    }
+                ],
+                rate: rate,
+                sourceCurrency,
+                targetCurrency,
             };
         }
 
@@ -699,15 +558,47 @@
             const grid = document.getElementById('resultGrid');
             const productEl = document.getElementById('resultProduct');
             const noteEl = document.getElementById('resultNote');
-            if (data.product) { productEl.textContent = data.product; productEl.style.display = ''; } else { productEl.style.display = 'none'; }
+
             grid.innerHTML = '';
-            (data.items || []).forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'result-item' + (item.highlight ? ' highlight' : '');
-                div.innerHTML = `<span class="result-item-label">${item.label}</span><span class="result-item-value">${item.value}</span>`;
-                grid.appendChild(div);
-            });
-            noteEl.textContent = data.demo ? '目前為 Demo 模式，串接 API 後可辨識真實標價' : `匯率：1 USD = ${data.rate} TWD`;
+
+            if (data.items && data.items.length > 0) {
+                // New multi-item format from updated API
+                data.items.forEach((item, idx) => {
+                    // Item name as separator
+                    if (item.name) {
+                        const sep = document.createElement('div');
+                        sep.className = 'result-item separator';
+                        sep.innerHTML = `<span class="result-item-label">${item.name}</span><span class="result-item-value"></span>`;
+                        grid.appendChild(sep);
+                    }
+                    // Converted items
+                    (item.convertedItems || []).forEach(ci => {
+                        const div = document.createElement('div');
+                        div.className = 'result-item' + (ci.highlight ? ' highlight' : '');
+                        div.innerHTML = `<span class="result-item-label">${ci.label}</span><span class="result-item-value">${ci.value}</span>`;
+                        grid.appendChild(div);
+                    });
+                });
+                productEl.textContent = data.items.length === 1 ? (data.items[0].name || '') : `共辨識 ${data.items.length} 個品項`;
+                productEl.style.display = data.items.length > 1 ? '' : 'none';
+            } else if (data.product) {
+                // Legacy single-item format
+                productEl.textContent = data.product;
+                productEl.style.display = '';
+                (data.legacyItems || []).forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'result-item' + (item.highlight ? ' highlight' : '');
+                    div.innerHTML = `<span class="result-item-label">${item.label}</span><span class="result-item-value">${item.value}</span>`;
+                    grid.appendChild(div);
+                });
+            }
+
+            const src = document.getElementById('sourceCurrency').value;
+            const tgt = document.getElementById('targetCurrency').value;
+            const rate = getUserRate();
+            noteEl.textContent = data.demo
+                ? '目前為 Demo 模式，串接 API 後可辨識真實標價'
+                : `匯率：1 ${src} = ${rate < 1 ? rate.toFixed(4) : rate.toFixed(2)} ${tgt}`;
             document.getElementById('resultCard').classList.add('visible');
         }
 
@@ -719,32 +610,45 @@
             document.getElementById('resultCard').classList.add('visible');
         }
 
-        const CONVERSIONS = { per_lb:453.592, per_oz:28.3495, per_kg:1000, per_100g:100, per_gallon:3785.41, per_qt:946.353 };
-
+        // ── Manual calculation ──
         function calcManual() {
             const price = parseFloat(document.getElementById('priceInput').value);
             const unit = document.getElementById('unitSelect').value;
-            const rate = parseFloat(document.getElementById('rateInput').value) || 32.5;
-            if (!price || price <= 0) { document.getElementById('resultCard').classList.remove('visible'); return; }
-            const twdPrice = price * rate;
-            const items = [];
-            items.push({label:'台幣價格',value:`NT$ ${twdPrice.toFixed(1)}`,highlight:true});
-            if (unit === 'each') {}
-            else if (unit === 'per_gallon' || unit === 'per_qt') {
-                const ml = CONVERSIONS[unit]; const twdPerL = (twdPrice/ml)*1000;
-                items.push({label:'每公升',value:`NT$ ${twdPerL.toFixed(1)}`,highlight:false});
-                items.push({label:'每 100mL',value:`NT$ ${(twdPerL/10).toFixed(1)}`,highlight:false});
-            } else {
-                const grams = CONVERSIONS[unit]; const twdPerG = twdPrice/grams;
-                items.push({label:'每台斤 (600g)',value:`NT$ ${(twdPerG*600).toFixed(1)}`,highlight:true});
-                items.push({label:'每 100g',value:`NT$ ${(twdPerG*100).toFixed(1)}`,highlight:false});
-                items.push({label:'每公斤',value:`NT$ ${(twdPerG*1000).toFixed(1)}`,highlight:false});
-                if (unit !== 'per_lb') items.push({label:'換算每磅 (USD)',value:`US$ ${(price*(453.592/grams)).toFixed(2)}`,highlight:false});
+            const rate = getUserRate();
+            const src = document.getElementById('sourceCurrency').value;
+            const tgt = document.getElementById('targetCurrency').value;
+            const srcInfo = CURRENCIES[src] || {};
+            const tgtInfo = CURRENCIES[tgt] || {};
+
+            if (!price || price <= 0) {
+                document.getElementById('resultCard').classList.remove('visible');
+                return;
             }
-            const unitNames = {per_lb:'每磅 (lb)',per_oz:'每盎司 (oz)',per_kg:'每公斤',per_100g:'每 100g',each:'每個',per_gallon:'每加侖',per_qt:'每夸脫'};
+
+            const converted = price * rate;
+            const items = [];
+
+            items.push({ label: `${tgtInfo.flag || ''} 換算價格`, value: formatTargetPrice(converted), highlight: true });
+
+            if (unit === 'each') {
+                // No weight/volume conversion
+            } else if (unit === 'per_gallon' || unit === 'per_qt' || unit === 'per_liter') {
+                const ml = CONVERSIONS[unit];
+                const tgtPerL = (converted / ml) * 1000;
+                items.push({ label: '每公升', value: formatTargetPrice(tgtPerL), highlight: false });
+                items.push({ label: '每 100mL', value: formatTargetPrice(tgtPerL / 10), highlight: false });
+            } else {
+                const grams = CONVERSIONS[unit];
+                const tgtPerG = converted / grams;
+                items.push({ label: '每台斤 (600g)', value: formatTargetPrice(tgtPerG * 600), highlight: true });
+                items.push({ label: '每 100g', value: formatTargetPrice(tgtPerG * 100), highlight: false });
+                items.push({ label: '每公斤', value: formatTargetPrice(tgtPerG * 1000), highlight: false });
+            }
+
             const grid = document.getElementById('resultGrid');
             const productEl = document.getElementById('resultProduct');
-            productEl.textContent = `US$ ${price.toFixed(2)} ${unitNames[unit]}`; productEl.style.display = '';
+            productEl.textContent = `${srcInfo.symbol || src} ${price > 1000 ? Math.round(price).toLocaleString() : price.toFixed(2)} ${UNIT_NAMES[unit] || ''}`;
+            productEl.style.display = '';
             grid.innerHTML = '';
             items.forEach(item => {
                 const div = document.createElement('div');
@@ -752,11 +656,11 @@
                 div.innerHTML = `<span class="result-item-label">${item.label}</span><span class="result-item-value">${item.value}</span>`;
                 grid.appendChild(div);
             });
-            document.getElementById('resultNote').textContent = `匯率：1 USD = ${rate} TWD`;
+            document.getElementById('resultNote').textContent = `匯率：1 ${src} = ${rate < 1 ? rate.toFixed(4) : rate.toFixed(2)} ${tgt}`;
             document.getElementById('resultCard').classList.add('visible');
         }
 
-        // Event listeners
+        // ── Event listeners ──
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.addEventListener('click', () => switchMode(btn.dataset.mode));
         });
@@ -765,11 +669,21 @@
         document.getElementById('fileInput').addEventListener('change', handleFile);
         document.getElementById('btnAnalyze').addEventListener('click', analyzePhoto);
 
-        // Real-time calculation for manual mode
-        ['priceInput', 'unitSelect', 'rateInput'].forEach(id => {
+        ['priceInput', 'unitSelect'].forEach(id => {
             document.getElementById(id).addEventListener('change', calcManual);
             document.getElementById(id).addEventListener('input', calcManual);
         });
+
+        // Currency change listeners
+        ['sourceCurrency', 'targetCurrency'].forEach(id => {
+            document.getElementById(id).addEventListener('change', updateRateDisplay);
+        });
+        document.getElementById('rateInput').addEventListener('input', () => {
+            if (currentPanel === 'manual') calcManual();
+        });
+
+        // Init
+        updateRateDisplay();
     </script>
 </body>
 </html>
