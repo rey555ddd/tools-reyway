@@ -1,11 +1,63 @@
 // 意見回饋 API — Cloudflare Pages Function
 // POST /api/feedback
 // Body: { name, usage[], type[], text, contact, ts, ua }
-// 目前實作：寫入 console.log（CF Pages dashboard > Functions > Real-time logs 可看）
-// 如需 email/Notion/Telegram 通知，可在這邊加 fetch 到對應 webhook
+// 接收後同時 console.log + 透過 LINE Messaging API push 通知
 
 interface Env {
-  // FEEDBACK_WEBHOOK_URL?: string;  // 之後想要時可在 CF 環境變數設定
+  LINE_CHANNEL_ACCESS_TOKEN?: string;
+  LINE_USER_ID?: string;
+}
+
+async function pushToLine(env: Env, text: string): Promise<void> {
+  const token = env.LINE_CHANNEL_ACCESS_TOKEN;
+  const to = env.LINE_USER_ID;
+  if (!token || !to) {
+    console.warn('LINE_CHANNEL_ACCESS_TOKEN or LINE_USER_ID not set, skipping LINE push');
+    return;
+  }
+  try {
+    const resp = await fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        to,
+        messages: [{ type: 'text', text: text.slice(0, 4990) }],
+      }),
+    });
+    if (!resp.ok) {
+      const errBody = await resp.text();
+      console.error('LINE push failed:', resp.status, errBody.slice(0, 300));
+    }
+  } catch (err: any) {
+    console.error('LINE push exception:', err.message || err);
+  }
+}
+
+function formatLineMessage(d: {
+  name: string; usage: string[]; type: string[];
+  text: string; contact: string; ts: string;
+}): string {
+  const lines: string[] = [];
+  lines.push('🎁 [tools.reyway] 新許願！');
+  lines.push('');
+  if (d.name) lines.push(`👤 ${d.name}`);
+  if (d.usage.length) lines.push(`🔧 常做：${d.usage.join('、')}`);
+  if (d.type.length) lines.push(`💡 想要：${d.type.join('、')}`);
+  if (d.text) {
+    lines.push('');
+    lines.push(`💬 ${d.text}`);
+  }
+  if (d.contact) {
+    lines.push('');
+    lines.push(`📞 聯絡：${d.contact}`);
+  }
+  lines.push('');
+  const ts = new Date(d.ts).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+  lines.push(`⏰ ${ts}`);
+  return lines.join('\n');
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -31,16 +83,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ip: context.request.headers.get('cf-connecting-ip') || 'unknown',
     };
 
-    // 醒目印出，方便在 CF Pages 後台 Real-time logs 找到
+    // 印 log 備援（萬一 LINE 失敗也有紀錄）
     console.log('========== TOOLS-REYWAY FEEDBACK ==========');
     console.log(JSON.stringify(cleaned, null, 2));
     console.log('===========================================');
 
-    // 之後如果要加自動轉發（email/Notion/Telegram/Slack），可加在這裡
-    // 範例：
-    // if (context.env.FEEDBACK_WEBHOOK_URL) {
-    //   await fetch(context.env.FEEDBACK_WEBHOOK_URL, { method: 'POST', body: JSON.stringify(cleaned) });
-    // }
+    // Push 到 LINE
+    const lineText = formatLineMessage(cleaned);
+    await pushToLine(context.env, lineText);
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
