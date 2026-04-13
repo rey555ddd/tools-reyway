@@ -39,6 +39,8 @@
             overflow-x:hidden;
         }
         ::selection{background:rgba(74,127,247,0.12)}
+
+        /* ===== Ambient Background ===== */
         .ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
         .orb{position:absolute;border-radius:50%;filter:blur(100px);will-change:transform;opacity:0.7}
         .orb-1{width:50vw;height:50vw;top:-20%;left:-15%;background:radial-gradient(circle,rgba(74,127,247,0.06),transparent 60%);animation:float1 30s ease-in-out infinite}
@@ -47,10 +49,16 @@
         @keyframes float1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,30px) scale(1.05)}}
         @keyframes float2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-30px,-40px) scale(1.03)}}
         @keyframes float3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,25px) scale(0.97)}}
+
+        /* ===== Noise Texture ===== */
         .noise{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.03;
             background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
         }
+
+        /* ===== Layout ===== */
         .container{max-width:720px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+
+        /* ===== Header ===== */
         .header{padding:72px 0 16px;text-align:center}
         .header-badge{
             display:inline-flex;align-items:center;gap:6px;
@@ -81,6 +89,8 @@
             line-height:1.8;font-weight:300;
             max-width:400px;margin:0 auto;
         }
+
+        /* ===== Tool Grid ===== */
         .tool-grid{
             display:grid;
             grid-template-columns:1fr;
@@ -115,11 +125,14 @@
                 0 0 0 1px var(--border-hover);
         }
         .tool-card:active{transform:translateY(-2px)}
+
+        /* Stagger animation */
         .tool-card{opacity:0;animation:cardIn 0.6s var(--ease) forwards}
         .tool-card:nth-child(1){animation-delay:0.1s}
         .tool-card:nth-child(2){animation-delay:0.2s}
         .tool-card:nth-child(3){animation-delay:0.3s}
         @keyframes cardIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
         .tool-icon{
             width:52px;height:52px;border-radius:var(--radius-sm);flex-shrink:0;
             display:flex;align-items:center;justify-content:center;
@@ -128,9 +141,11 @@
             transition:transform 0.4s var(--ease);
         }
         .tool-card:hover .tool-icon{transform:scale(1.08)}
+
         .icon-blue{background:var(--primary-soft);border:1px solid rgba(74,127,247,0.12);color:var(--primary)}
         .icon-green{background:var(--green-soft);border:1px solid rgba(58,154,110,0.12);color:var(--green)}
         .icon-violet{background:var(--violet-soft);border:1px solid rgba(139,108,193,0.12);color:var(--violet)}
+
         .tool-body{flex:1;min-width:0}
         .tool-body h2{
             font-size:1rem;font-weight:600;
@@ -147,8 +162,12 @@
             flex-shrink:0;opacity:0;transform:translateX(-8px);
         }
         .tool-card:hover .tool-arrow{opacity:1;transform:translateX(0);color:var(--primary)}
+
+        /* ===== Footer ===== */
         footer{text-align:center;padding:0 0 48px}
         footer p{font-size:0.68rem;color:var(--text-tertiary);letter-spacing:1.5px;font-weight:300}
+
+        /* ===== Responsive ===== */
         @media(max-width:640px){
             .container{padding:0 16px}
             .header{padding:48px 0 12px}
@@ -191,8 +210,8 @@
             <a class="tool-card" href="converter.html">
                 <div class="tool-icon icon-green">換</div>
                 <div class="tool-body">
-                    <h2>單位換算器</h2>
-                    <p>拍照自動辨識美國超市標價，換算成台幣、台斤，一目了然。</p>
+                    <h2>海外購物助手</h2>
+                    <p>出國看到菜單或價目表？拍照辨識金額，一秒換算成你熟悉的幣值。</p>
                 </div>
                 <span class="tool-arrow">&#8594;</span>
             </a>
