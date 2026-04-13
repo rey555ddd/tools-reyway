@@ -179,6 +179,38 @@
             font-weight: 500;
         }
 
+        .usage-tips {
+            padding: 18px 22px;
+            background: rgba(218, 165, 32, 0.08);
+            border: 1px solid rgba(218, 165, 32, 0.3);
+            border-left: 4px solid #daa520;
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-size: 14px;
+            margin-bottom: 28px;
+            backdrop-filter: var(--blur);
+            line-height: 1.7;
+        }
+        .usage-tips strong {
+            display: block;
+            font-size: 15px;
+            color: #b8851a;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .usage-tips ul {
+            margin: 0;
+            padding-left: 20px;
+            color: var(--text-secondary);
+        }
+        .usage-tips li {
+            margin-bottom: 4px;
+        }
+        .usage-tips li b {
+            color: var(--text);
+            font-weight: 600;
+        }
+
         /* Main Grid */
         .grid {
             display: grid;
@@ -596,6 +628,16 @@
         <div class="header">
             <h1>去背商品情境圖生成器</h1>
             <p>上傳商品照片，AI 自動去背並生成精美情境圖</p>
+        </div>
+
+        <div class="usage-tips">
+            <strong>📌 使用小提醒</strong>
+            <ul>
+                <li>每張圖大約需要 <b>30-60 秒</b> 生成，請耐心等候</li>
+                <li>連續生成請<b>間隔 20-30 秒</b>，太快會被 AI 服務暫時擋下</li>
+                <li>建議使用<b>背景乾淨、無人臉、無強反射</b>的商品照成功率最高</li>
+                <li>失敗時請等 10-20 秒再點一次「生成」即可</li>
+            </ul>
         </div>
 
         <div id="demoAlert">
