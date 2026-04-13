@@ -231,48 +231,6 @@
         #uploadZone svg {
             width: 48px;
             height: 48px;
-            color: var(--text-secondary: 1fr;
-                gap: 32px;
-            }
-        }
-
-        /* Upload Zone */
-        .upload-section {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        #uploadZone {
-            padding: 48px;
-            border: 2px dashed var(--border-hover);
-            border-radius: var(--radius);
-            background: var(--surface);
-            backdrop-filter: var(--blur);
-            cursor: pointer;
-            transition: all 300ms var(--ease);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            min-height: 320px;
-        }
-
-        #uploadZone:hover {
-            border-color: var(--primary);
-            background: rgba(139, 108, 193, 0.05);
-        }
-
-        #uploadZone.dragover {
-            border-color: var(--primary);
-            background: rgba(139, 108, 193, 0.1);
-            transform: scale(1.02);
-        }
-
-        #uploadZone svg {
-            width: 48px;
-            height: 48px;
             color: var(--text-secondary);
             transition: all 300ms var(--ease);
         }
@@ -702,7 +660,7 @@
                         </div>
                         <div class="preset-card" data-preset="cotton">
                             <span class="preset-emoji">🧵</span>
-                            <span class="preset-name">棉鸻布料</span>
+                            <span class="preset-name">棉麻布料</span>
                         </div>
                         <div class="preset-card" data-preset="sunlight">
                             <span class="preset-emoji">☀️</span>
@@ -805,7 +763,23 @@
                 reader.onload = async (e) => {
                     const base64 = e.target.result.split(',')[1];
                     const mimeType = selectedFile.type;
-                    if (isDemoMode) { showDemoRed = false; }
+                    if (isDemoMode) { showDemoResult(); }
+                    else {
+                        try {
+                            const response = await fetch('/api/bg-generator', {
+                                method:'POST', headers:{'Content-Type':'application/json'},
+                                body:JSON.stringify({image:base64,mimeType,backgroundStyle:background,customPrompt:selectedPreset?'':customPrompt.value.trim()})
+                            });
+                            if (!response.ok) throw new Error('API error: '+response.status);
+                            const data = await response.json();
+                            resultImageData = data.image;
+                            resultImage.src = 'data:'+data.mimeType+';base64,'+data.image;
+                            resultCard.classList.add('visible');
+                        } catch(error) { console.error('Generation error:',error); alert('生成失敗，請稍後重試'); showDemoResult(); }
+                    }
+                };
+                reader.readAsDataURL(selectedFile);
+            } finally { generateBtn.classList.remove('loading'); generateBtn.disabled = false; }
         });
 
         function showDemoResult() {
