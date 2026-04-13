@@ -103,7 +103,7 @@
             background:var(--surface);
             backdrop-filter:var(--blur);
             -webkit-backdrop-filter:var(--blur);
-            border:1px solid var(--border);
+            border:1.5px solid var(--border);
             border-radius:var(--radius);
             text-decoration:none;color:var(--text);
             transition:all 0.4s var(--ease);
@@ -140,6 +140,7 @@
             font-family:'Noto Sans TC',sans-serif;
             transition:transform 0.4s var(--ease);
         }
+        .tool-icon svg{width:26px;height:26px;stroke-width:1.7}
         .tool-card:hover .tool-icon{transform:scale(1.08)}
 
         .icon-blue{background:var(--primary-soft);border:1px solid rgba(74,127,247,0.12);color:var(--primary)}
@@ -178,20 +179,24 @@
 
         /* ===== Feedback Button ===== */
         .feedback-btn{
-            display:inline-flex;align-items:center;gap:6px;
-            background:white;border:1px solid var(--border);
-            color:var(--text);font-family:inherit;font-size:0.85rem;
-            font-weight:500;padding:9px 18px;border-radius:999px;
+            display:inline-flex;align-items:center;gap:8px;
+            background:#e0f2fe;
+            border:1.5px solid #7dd3fc;
+            color:#0369a1;
+            font-family:inherit;font-size:0.88rem;
+            font-weight:600;padding:10px 22px;border-radius:999px;
             cursor:pointer;margin-top:18px;
             transition:all 0.25s var(--ease);
-            box-shadow:0 1px 2px rgba(0,0,0,0.03);
+            box-shadow:0 2px 6px rgba(14,165,233,0.12);
         }
         .feedback-btn:hover{
-            border-color:var(--primary);color:var(--primary);
+            background:#bae6fd;
+            border-color:#38bdf8;
+            color:#075985;
             transform:translateY(-1px);
-            box-shadow:0 6px 16px rgba(74,127,247,0.15);
+            box-shadow:0 6px 16px rgba(14,165,233,0.22);
         }
-        .feedback-btn .icon{font-size:1rem}
+        .feedback-btn svg{width:17px;height:17px;stroke-width:2}
 
         /* ===== Modal ===== */
         .modal-overlay{
@@ -358,14 +363,20 @@
             <h1><span>笙闆的 AI 工具箱</span></h1>
             <p>歡迎親朋好友自由取用，有任何功能需求也可以留言給我。</p>
             <button class="feedback-btn" id="open-feedback">
-                <span class="icon">💬</span>
-                <span>我想要 ___ 工具（留言給笙哥）</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.068.157 2.148.279 3.238.364.466.037.893.281 1.153.671L12 21l2.652-3.978c.26-.39.687-.634 1.153-.67 1.09-.086 2.17-.208 3.238-.365 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/>
+                </svg>
+                <span>留言給版主</span>
             </button>
         </header>
 
         <div class="tool-grid">
             <a class="tool-card" href="copywriter.html">
-                <div class="tool-icon icon-blue">文</div>
+                <div class="tool-icon icon-blue">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/>
+                    </svg>
+                </div>
                 <div class="tool-body">
                     <h2>文案小幫手</h2>
                     <p>文案生成、語氣改寫、文案精簡、去 AI 味——貼上文字就搞定。</p>
@@ -374,7 +385,11 @@
             </a>
 
             <a class="tool-card" href="converter.html">
-                <div class="tool-icon icon-green">換</div>
+                <div class="tool-icon icon-green">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+                    </svg>
+                </div>
                 <div class="tool-body">
                     <h2>海外購物助手</h2>
                     <p>出國看到菜單或價目表？拍照辨識金額，一秒換算成你熟悉的幣值。</p>
@@ -383,7 +398,11 @@
             </a>
 
             <a class="tool-card" href="bg-generator.html">
-                <div class="tool-icon icon-violet">背</div>
+                <div class="tool-icon icon-violet">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+                    </svg>
+                </div>
                 <div class="tool-body">
                     <h2>去背商品情境生成器</h2>
                     <p>上傳商品照，AI 自動去背並合成精品級或天然風情境美圖。</p>
@@ -392,7 +411,11 @@
             </a>
 
             <a class="tool-card is-dev" href="plant-doctor.html">
-                <div class="tool-icon icon-green">綠</div>
+                <div class="tool-icon icon-green">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25c-1.5 3-3 5.25-3 8.25 0 3 1.5 5.25 3 5.25s3-2.25 3-5.25c0-3-1.5-5.25-3-8.25zM12 15.75V21.75M7.5 9.75c-1.5 1.5-3 3.75-3 6.75 0 1.5 1.5 3 3 3 3 0 4.5-3 4.5-6 0-1.5-1.5-3-4.5-3.75zM16.5 9.75c1.5 1.5 3 3.75 3 6.75 0 1.5-1.5 3-3 3-3 0-4.5-3-4.5-6 0-1.5 1.5-3 4.5-3.75z"/>
+                    </svg>
+                </div>
                 <div class="tool-body">
                     <h2>植物醫生<span class="dev-badge">🚧 開發中，敬請期待</span></h2>
                     <p>拍照辨識植物、診斷病蟲害、提供完整養護指南。多肉、觀葉、花卉、香草都能認。</p>
