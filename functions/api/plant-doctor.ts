@@ -151,48 +151,56 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const base64Data = image.includes(',') ? image.split(',')[1] : image;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60_000);
+    // 模型 fallback：2.5 超載時換 flash-latest
+    const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-flash-latest'];
+    let geminiResp: Response | null = null;
+    let lastStatus = 0;
+    let lastErrBody = '';
 
-    let geminiResp: Response;
-    try {
-      geminiResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: buildPrompt(mode, userNote) },
-                { inlineData: { mimeType, data: base64Data } },
-              ],
-            }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
-          }),
-          signal: controller.signal,
-        }
-      );
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
-        return new Response(
-          JSON.stringify({ error: '辨識逾時，請稍後重試或重拍一張更清楚的照片' }),
-          { status: 504, headers: { 'Content-Type': 'application/json' } }
+    for (const model of MODEL_CHAIN) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 55_000);
+      try {
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: buildPrompt(mode, userNote) },
+                  { inlineData: { mimeType, data: base64Data } },
+                ],
+              }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
+            }),
+            signal: controller.signal,
+          }
         );
+        clearTimeout(timeoutId);
+        if (r.ok) { geminiResp = r; break; }
+        lastStatus = r.status;
+        lastErrBody = await r.text();
+        console.error(`${model} error:`, r.status, lastErrBody.slice(0, 200));
+        if (![429, 500, 502, 503, 504].includes(r.status)) break;
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          lastStatus = 504;
+          continue;
+        }
+        lastErrBody = err.message || String(err);
+        continue;
       }
-      throw err;
     }
-    clearTimeout(timeoutId);
 
-    if (!geminiResp.ok) {
-      const status = geminiResp.status;
-      const errBody = await geminiResp.text();
-      console.error('Gemini API error:', status, errBody.slice(0, 300));
+    if (!geminiResp) {
       let userMsg: string;
-      if (status === 429) userMsg = '使用人數較多，請稍候 30 秒再試';
-      else if (status >= 500) userMsg = 'AI 服務暫時不穩，請稍候再試';
-      else userMsg = `AI 服務回應異常 (${status})，請稍後重試`;
+      if (lastStatus === 429) userMsg = '使用人數較多，請稍候 30 秒再試';
+      else if (lastStatus === 504) userMsg = '辨識逾時，請稍後重試或重拍一張更清楚的照片';
+      else if (lastStatus >= 500) userMsg = 'AI 服務暫時不穩，請稍候再試';
+      else userMsg = `AI 服務回應異常 (${lastStatus})，請稍後重試`;
       return new Response(
         JSON.stringify({ error: userMsg }),
         { status: 502, headers: { 'Content-Type': 'application/json' } }
@@ -204,10 +212,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     let parsed: any;
     try {
-      const jsonStr = rawText
-        .replace(/```json\s*/gi, '')
-        .replace(/```\s*/g, '')
-        .trim();
+      let jsonStr = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      const firstBrace = jsonStr.indexOf('{');
+      const lastBrace = jsonStr.lastIndexOf('}');
+      if (firstBrace >= 0 && lastBrace > firstBrace) {
+        jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
+      }
       parsed = JSON.parse(jsonStr);
     } catch {
       console.error('Failed to parse Gemini response:', rawText.slice(0, 300));
