@@ -119,7 +119,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.5, maxOutputTokens: 4096, responseMimeType: 'application/json' },
+            generationConfig: { temperature: 0.5, maxOutputTokens: 4096 },
           }),
           signal: controller.signal,
         }
@@ -147,7 +147,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const data = await res.json() as any;
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    // 抽出 JSON：優先拿 ```json ``` 中的內容，沒有的話用第一個 { 到最後一個 }
+    let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+    }
 
     let parsed: any;
     try {
@@ -155,7 +161,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch {
       console.error('Failed to parse:', raw.slice(0, 500));
       return new Response(
-        JSON.stringify({ error: '規劃結果解析失敗，請重試' }),
+        JSON.stringify({ error: '規劃結果解析失敗，請重試。若反覆失敗請換個目的地說法。' }),
         { status: 422, headers: { 'Content-Type': 'application/json' } }
       );
     }
