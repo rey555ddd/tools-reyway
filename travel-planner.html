@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅遊規劃師 — 笙闆的AI工具箱</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #fefdfb;
+    --surface: rgba(255,255,255,0.9);
+    --border: rgba(0,0,0,0.08);
+    --text: #1f2937;
+    --text-secondary: #4b5563;
+    --text-tertiary: #9ca3af;
+    --primary: #ea580c;
+    --primary-hover: #c2410c;
+    --primary-soft: rgba(234,88,12,0.08);
+    --food: #e11d48;
+    --food-soft: rgba(225,29,72,0.08);
+    --stay: #7c3aed;
+    --stay-soft: rgba(124,58,237,0.08);
+    --shop: #0891b2;
+    --shop-soft: rgba(8,145,178,0.08);
+    --play: #16a34a;
+    --play-soft: rgba(22,163,74,0.08);
+  }
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 17px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    letter-spacing: 0.005em;
+  }
+  body {
+    min-height: 100vh;
+    padding: 24px 16px 80px;
+    background:
+      radial-gradient(700px 400px at 0% 0%, rgba(234,88,12,0.05), transparent 50%),
+      radial-gradient(500px 300px at 100% 30%, rgba(22,163,74,0.04), transparent 50%),
+      var(--bg);
+  }
+  .container { max-width: 820px; margin: 0 auto; }
+
+  .back-link { display: inline-block; color: var(--primary); text-decoration: none; font-size: 14px; margin-bottom: 16px; }
+  .back-link:hover { text-decoration: underline; }
+
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 30px; font-weight: 700; }
+  header p { color: var(--text-secondary); margin-top: 8px; font-size: 16px; }
+
+  .card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .card h2 {
+    font-size: 18px; font-weight: 600; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .form-grid {
+    display: grid; grid-template-columns: 1fr; gap: 14px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  label.field-label { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
+  label.field-label .opt { color: var(--text-tertiary); font-size: 12px; margin-left: 4px; font-weight: 400; }
+  input[type="text"], select {
+    padding: 14px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-family: inherit; font-size: 16px;
+    background: white;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--primary); }
+
+  .style-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .style-chip {
+    padding: 6px 12px; background: white;
+    border: 1.5px solid var(--border); border-radius: 999px;
+    font-family: inherit; font-size: 13px; cursor: pointer;
+    color: var(--text-secondary); transition: all 0.15s;
+  }
+  .style-chip:hover { border-color: var(--primary); }
+  .style-chip.active { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+
+  .btn {
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-family: inherit; font-size: 16px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.2s;
+    width: 100%;
+  }
+  .btn-primary {
+    background: var(--primary); color: white;
+    box-shadow: 0 4px 12px rgba(234,88,12,0.2);
+  }
+  .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+  .btn-primary:disabled { background: var(--text-tertiary); cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    background: white; border: 1.5px solid var(--border); color: var(--text-secondary);
+  }
+
+  /* Loading */
+  .loading-state {
+    display: none; text-align: center; padding: 40px 20px;
+    background: white; border-radius: 16px; border: 1.5px solid var(--border);
+  }
+  .loading-state.visible { display: block; }
+  .loading-spinner {
+    width: 48px; height: 48px; border: 4px solid var(--primary-soft);
+    border-top-color: var(--primary); border-radius: 50%;
+    margin: 0 auto 16px; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Overview */
+  .overview-area { display: none; }
+  .overview-area.visible { display: block; }
+  .dest-name { font-size: 26px; font-weight: 700; }
+  .dest-summary { font-size: 16px; color: var(--text-secondary); margin-top: 8px; line-height: 1.7; }
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 12px; margin-top: 16px; }
+  .meta-item { background: var(--primary-soft); padding: 12px 16px; border-radius: 10px; }
+  .meta-label { font-size: 11px; color: var(--primary); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .meta-value { font-size: 14px; color: var(--text); }
+  .tips-list { background: #fffaf5; border: 1px solid #ffedd5; border-radius: 12px; padding: 16px; margin-top: 16px; }
+  .tips-list .tips-title { font-weight: 600; color: var(--primary); margin-bottom: 8px; font-size: 14px; }
+  .tips-list ul { list-style: none; padding: 0; }
+  .tips-list li { padding: 6px 0 6px 22px; position: relative; font-size: 14px; line-height: 1.7; }
+  .tips-list li::before { content: '💡'; position: absolute; left: 0; font-size: 14px; }
+
+  /* Category tiles */
+  .cat-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    margin-top: 20px;
+  }
+  @media (max-width: 480px) { .cat-grid { grid-template-columns: 1fr; } }
+  .cat-tile {
+    background: white; border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 20px; cursor: pointer; transition: all 0.2s;
+    display: flex; flex-direction: column; gap: 8px;
+    text-align: left; font-family: inherit;
+  }
+  .cat-tile:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.06); }
+  .cat-tile .cat-emoji { font-size: 32px; }
+  .cat-tile .cat-name { font-size: 18px; font-weight: 700; }
+  .cat-tile .cat-hl { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  .cat-tile .cat-foot { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+  .cat-tile.food { border-color: var(--food-soft); }
+  .cat-tile.food:hover { border-color: var(--food); }
+  .cat-tile.food .cat-name { color: var(--food); }
+  .cat-tile.stay { border-color: var(--stay-soft); }
+  .cat-tile.stay:hover { border-color: var(--stay); }
+  .cat-tile.stay .cat-name { color: var(--stay); }
+  .cat-tile.shop { border-color: var(--shop-soft); }
+  .cat-tile.shop:hover { border-color: var(--shop); }
+  .cat-tile.shop .cat-name { color: var(--shop); }
+  .cat-tile.play { border-color: var(--play-soft); }
+  .cat-tile.play:hover { border-color: var(--play); }
+  .cat-tile.play .cat-name { color: var(--play); }
+
+  /* Category detail */
+  .detail-area { display: none; }
+  .detail-area.visible { display: block; }
+  .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .detail-back {
+    padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 999px;
+    background: white; cursor: pointer; font-size: 13px;
+    color: var(--text-secondary); font-family: inherit;
+  }
+  .detail-back:hover { border-color: var(--text-tertiary); }
+  .detail-title { font-size: 22px; font-weight: 700; }
+  .item-list { display: flex; flex-direction: column; gap: 12px; }
+  .item {
+    background: white; border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .item-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .item-name { font-size: 17px; font-weight: 700; }
+  .item-type { font-size: 12px; color: var(--text-tertiary); }
+  .item-price { font-size: 13px; margin-left: auto; }
+  .item-area { font-size: 13px; color: var(--text-tertiary); margin-bottom: 8px; }
+  .item-hl { font-size: 14px; color: var(--text); line-height: 1.7; margin-bottom: 6px; }
+  .item-rec { font-size: 13px; color: var(--text-secondary); line-height: 1.7; background: #f8f9fc; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; }
+  .item-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .item-tag { background: var(--primary-soft); color: var(--primary); padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .item-map {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 13px; color: var(--primary); text-decoration: none; font-weight: 600;
+    padding: 6px 12px; background: var(--primary-soft); border-radius: 8px;
+  }
+  .item-map:hover { background: rgba(234,88,12,0.15); }
+
+  footer { text-align: center; margin-top: 40px; color: var(--text-tertiary); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="/" class="back-link">← 回工具箱首頁</a>
+
+  <header>
+    <h1>✈️ 旅遊規劃師</h1>
+    <p>輸入目的地，AI 幫你找附近的吃、住、逛、玩</p>
+  </header>
+
+  <!-- Form -->
+  <div class="card" id="form-card">
+    <h2>📍 你要去哪裡玩？</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label class="field-label">目的地</label>
+        <input type="text" id="destination" placeholder="例如：京都、沖繩、金門、九份、清境..." autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="field-label">預計停留 <span class="opt">（選填）</span></label>
+        <select id="days">
+          <option value="">不指定</option>
+          <option value="半天">半天</option>
+          <option value="1 天">1 天</option>
+          <option value="2-3 天">2-3 天</option>
+          <option value="4-5 天">4-5 天</option>
+          <option value="一週">一週</option>
+          <option value="一週以上">一週以上</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">旅遊風格 <span class="opt">（可複選，選完可再改）</span></label>
+        <div class="style-chips" id="style-chips"></div>
+      </div>
+      <button class="btn btn-primary" id="submit-btn">🎯 開始規劃</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-state" id="loading">
+    <div class="loading-spinner"></div>
+    <div id="loading-text" style="font-size:15px;color:var(--text-secondary);">AI 正在搜尋中...</div>
+  </div>
+
+  <!-- Overview -->
+  <div class="overview-area" id="overview"></div>
+
+  <!-- Detail -->
+  <div class="detail-area" id="detail"></div>
+
+  <footer>笙闆的 AI 工具箱 · 推薦為參考，實際請再查官網最新資訊</footer>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const form = $('form-card');
+  const submitBtn = $('submit-btn');
+  const loading = $('loading');
+  const loadingText = $('loading-text');
+  const overview = $('overview');
+  const detail = $('detail');
+  const styleChips = $('style-chips');
+
+  const STYLES = ['美食優先', '文青/咖啡廳', '大自然/戶外', '親子友善', '姐妹閨蜜', '購物血拚', '溫泉/療癒', '深度文化', '銀髮友善'];
+  const CATEGORIES = [
+    { key: 'food', emoji: '🍜', name: '吃的', desc: '餐廳、小吃、咖啡' },
+    { key: 'stay', emoji: '🏨', name: '住的', desc: '飯店、民宿、旅館' },
+    { key: 'shop', emoji: '🛍', name: '逛的', desc: '商店、市集、特色街區' },
+    { key: 'play', emoji: '🎡', name: '玩的', desc: '景點、體驗、博物館' },
+  ];
+
+  const selectedStyles = new Set();
+  styleChips.innerHTML = STYLES.map(s => `<button type="button" class="style-chip" data-s="${s}">${s}</button>`).join('');
+  styleChips.addEventListener('click', (e) => {
+    const btn = e.target.closest('.style-chip');
+    if (!btn) return;
+    const s = btn.dataset.s;
+    if (selectedStyles.has(s)) { selectedStyles.delete(s); btn.classList.remove('active'); }
+    else { selectedStyles.add(s); btn.classList.add('active'); }
+  });
+
+  let currentDest = '';
+  let currentStyle = '';
+  const cache = {}; // cache category results per key
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  const _ = escapeHtml;
+
+  function showLoading(msg) {
+    loading.classList.add('visible');
+    loadingText.textContent = msg;
+    const startTs = Date.now();
+    const timer = setInterval(() => {
+      const s = Math.floor((Date.now() - startTs) / 1000);
+      loadingText.textContent = `${msg} (${s}s)`;
+    }, 1000);
+    loading._timer = timer;
+  }
+  function hideLoading() {
+    loading.classList.remove('visible');
+    if (loading._timer) clearInterval(loading._timer);
+  }
+
+  submitBtn.addEventListener('click', async () => {
+    const destination = $('destination').value.trim();
+    const days = $('days').value;
+    const style = [...selectedStyles].join('、');
+    if (!destination) { alert('請輸入目的地'); $('destination').focus(); return; }
+
+    currentDest = destination;
+    currentStyle = style;
+    for (const k of Object.keys(cache)) delete cache[k];
+    overview.classList.remove('visible'); overview.innerHTML = '';
+    detail.classList.remove('visible'); detail.innerHTML = '';
+    form.style.display = 'none';
+    showLoading(`🔍 AI 正在查詢 ${destination} 的特色...`);
+
+    try {
+      const data = await callAPI({ destination, days, style, category: 'overview' });
+      renderOverview(data);
+    } catch (err) {
+      form.style.display = 'block';
+      alert('規劃失敗：' + (err.message || '請稍後重試'));
+    } finally {
+      hideLoading();
+    }
+  });
+
+  async function callAPI(body) {
+    const res = await fetch('/api/travel-planner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || ('錯誤 ' + res.status));
+    return data;
+  }
+
+  function renderOverview(d) {
+    const cats = d.categories || {};
+    overview.innerHTML = `
+      <div class="card">
+        <div class="dest-name">📍 ${_(d.destination || currentDest)}</div>
+        <div class="dest-summary">${_(d.summary || '')}</div>
+        <div class="meta-grid">
+          ${d.bestSeason ? `<div class="meta-item"><div class="meta-label">🌸 最佳季節</div><div class="meta-value">${_(d.bestSeason)}</div></div>` : ''}
+          ${currentStyle ? `<div class="meta-item"><div class="meta-label">✨ 風格</div><div class="meta-value">${_(currentStyle)}</div></div>` : ''}
+        </div>
+        ${d.tips && d.tips.length ? `
+          <div class="tips-list">
+            <div class="tips-title">旅遊小提醒</div>
+            <ul>${d.tips.map(t => `<li>${_(t)}</li>`).join('')}</ul>
+          </div>` : ''}
+
+        <div class="cat-grid">
+          ${CATEGORIES.map(c => `
+            <button class="cat-tile ${c.key}" data-cat="${c.key}">
+              <div class="cat-emoji">${c.emoji}</div>
+              <div class="cat-name">${c.name}</div>
+              <div class="cat-hl">${_(cats[c.key] && cats[c.key].highlight || c.desc)}</div>
+              <div class="cat-foot">點擊查看推薦 →</div>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" id="restart-btn" style="margin-top:12px;">🔄 換個地方規劃</button>
+    `;
+    overview.classList.add('visible');
+
+    overview.querySelectorAll('.cat-tile').forEach(btn => {
+      btn.addEventListener('click', () => openCategory(btn.dataset.cat));
+    });
+    $('restart-btn').addEventListener('click', restart);
+
+    setTimeout(() => overview.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+
+  async function openCategory(cat) {
+    const catInfo = CATEGORIES.find(c => c.key === cat);
+    if (!catInfo) return;
+    overview.classList.remove('visible');
+    if (cache[cat]) return renderDetail(catInfo, cache[cat]);
+
+    showLoading(`🔍 搜尋 ${currentDest} 的「${catInfo.name}」推薦...`);
+    try {
+      const data = await callAPI({ destination: currentDest, style: currentStyle, category: cat });
+      cache[cat] = data;
+      renderDetail(catInfo, data);
+    } catch (err) {
+      overview.classList.add('visible');
+      alert('查詢失敗：' + (err.message || '請重試'));
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function renderDetail(catInfo, data) {
+    const items = data.items || [];
+    detail.innerHTML = `
+      <div class="card">
+        <div class="detail-header">
+          <button class="detail-back" id="back-btn">← 返回</button>
+          <div class="detail-title">${catInfo.emoji} ${catInfo.name} · ${_(currentDest)}</div>
+        </div>
+        <div class="item-list">
+          ${items.map(it => {
+            const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(it.mapQuery || (it.name + ' ' + (it.area || currentDest)));
+            return `
+              <div class="item">
+                <div class="item-top">
+                  <span class="item-name">${_(it.name)}</span>
+                  <span class="item-type">${_(it.type || '')}</span>
+                  ${it.priceLevel ? `<span class="item-price">${_(it.priceLevel)}</span>` : ''}
+                </div>
+                ${it.area ? `<div class="item-area">📍 ${_(it.area)}</div>` : ''}
+                <div class="item-hl">${_(it.highlight || '')}</div>
+                ${it.recommendation ? `<div class="item-rec">💡 ${_(it.recommendation)}</div>` : ''}
+                ${it.tags && it.tags.length ? `<div class="item-tags">${it.tags.map(t => `<span class="item-tag">${_(t)}</span>`).join('')}</div>` : ''}
+                <a class="item-map" href="${mapUrl}" target="_blank" rel="noopener">🗺 在 Google 地圖查看</a>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    detail.classList.add('visible');
+    $('back-btn').addEventListener('click', () => {
+      detail.classList.remove('visible');
+      detail.innerHTML = '';
+      overview.classList.add('visible');
+      setTimeout(() => overview.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    });
+    setTimeout(() => detail.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+
+  function restart() {
+    overview.classList.remove('visible'); overview.innerHTML = '';
+    detail.classList.remove('visible'); detail.innerHTML = '';
+    form.style.display = 'block';
+    $('destination').value = '';
+    selectedStyles.clear();
+    styleChips.querySelectorAll('.style-chip').forEach(b => b.classList.remove('active'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+})();
+</script>
+</body>
+</html>
