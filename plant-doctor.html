@@ -392,9 +392,19 @@
 
   <!-- 結果區 -->
   <div class="result-area" id="result-area">
+    <!-- 同一張圖換模式分析 -->
+    <div class="card" id="switch-card" style="padding:16px 18px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <img id="switch-thumb" alt="目前照片" style="width:56px;height:56px;object-fit:cover;border-radius:10px;flex-shrink:0;background:#f3f4f6;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">同一張照片還可以：</div>
+          <div id="switch-mode-grid" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        </div>
+      </div>
+    </div>
     <div class="card" id="result-card"></div>
     <div class="btn-row">
-      <button class="btn btn-secondary" id="restart-btn">分析另一張</button>
+      <button class="btn btn-secondary" id="restart-btn">📸 換一張新照片</button>
     </div>
   </div>
 
@@ -421,6 +431,13 @@
 
   let selectedMode = 'identify';
   let compressedBase64 = null;
+  let compressedDataUrl = null;
+
+  const MODE_META = {
+    identify: { emoji: '🔍', name: '這是什麼植物' },
+    diagnose: { emoji: '🩺', name: '植物怎麼了' },
+    care:     { emoji: '📖', name: '怎麼照顧' },
+  };
 
   const HINT_MAP = {
     identify: '建議拍全株或清楚葉片，越完整越好',
@@ -482,6 +499,7 @@
     try {
       const r = await compressImage(file);
       compressedBase64 = r.base64;
+      compressedDataUrl = r.dataUrl;
       previewImg.src = r.dataUrl;
       analyzeBtn.disabled = false;
       analyzeBtn.textContent = '開始分析';
@@ -493,6 +511,7 @@
 
   function reset() {
     compressedBase64 = null;
+    compressedDataUrl = null;
     fileInput.value = '';
     userNote.value = '';
     uploadZone.style.display = 'block';
@@ -504,7 +523,7 @@
   reuploadBtn.addEventListener('click', reset);
   restartBtn.addEventListener('click', () => { reset(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
 
-  analyzeBtn.addEventListener('click', async () => {
+  async function runAnalyze() {
     if (!compressedBase64) return;
 
     previewArea.classList.remove('visible');
@@ -552,6 +571,7 @@
 
       const data = await resp.json();
       renderResult(data);
+      renderSwitchBar();
     } catch (err) {
       console.error(err);
       alert('分析失敗：' + (err.message || '請稍後重試'));
@@ -560,7 +580,41 @@
       clearInterval(timer);
       loadingState.classList.remove('visible');
     }
-  });
+  }
+  analyzeBtn.addEventListener('click', runAnalyze);
+
+  function renderSwitchBar() {
+    if (compressedDataUrl) $('switch-thumb').src = compressedDataUrl;
+    const host = $('switch-mode-grid');
+    host.innerHTML = '';
+    Object.entries(MODE_META).forEach(([key, meta]) => {
+      const isCurrent = key === selectedMode;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.disabled = isCurrent;
+      btn.style.cssText = `
+        padding:8px 12px;
+        background:${isCurrent ? 'var(--green-soft)' : '#fff'};
+        border:1.5px solid ${isCurrent ? 'var(--green)' : 'var(--border)'};
+        color:${isCurrent ? 'var(--green)' : 'var(--text)'};
+        border-radius:10px;
+        font-family:inherit;font-size:13px;font-weight:600;
+        cursor:${isCurrent ? 'default' : 'pointer'};
+        opacity:${isCurrent ? 0.6 : 1};
+        transition:all 0.15s;
+      `;
+      btn.innerHTML = `${meta.emoji} ${meta.name}${isCurrent ? ' · 目前' : ''}`;
+      if (!isCurrent) {
+        btn.addEventListener('click', () => {
+          selectedMode = key;
+          [...modeGrid.children].forEach(b => b.classList.toggle('active', b.dataset.mode === key));
+          uploadHint.textContent = HINT_MAP[key];
+          runAnalyze();
+        });
+      }
+      host.appendChild(btn);
+    });
+  }
 
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
