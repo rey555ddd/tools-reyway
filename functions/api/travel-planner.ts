@@ -85,10 +85,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       debug?: boolean;
     };
     if (body.debug) {
-      return new Response(
-        JSON.stringify({ ok: true, hasKey: !!context.env.GEMINI_API_KEY, keyLen: (context.env.GEMINI_API_KEY || '').length }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
+      // Minimal Gemini call
+      const key = context.env.GEMINI_API_KEY;
+      try {
+        const r = await fetch(`${GEN_BASE}/gemini-2.5-flash:generateContent?key=${key}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: 'Say hi in 3 words.' }] }] }),
+        });
+        const bodyText = await r.text();
+        return new Response(
+          JSON.stringify({ ok: true, hasKey: !!key, status: r.status, sample: bodyText.slice(0, 500) }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      } catch (e: any) {
+        return new Response(
+          JSON.stringify({ ok: false, err: e.message || String(e) }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
     const destination = (body.destination || '').trim().slice(0, 100);
     const days = (body.days || '').trim().slice(0, 20);
