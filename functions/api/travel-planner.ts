@@ -82,7 +82,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       days?: string;
       style?: string;
       category?: string;
+      debug?: boolean;
     };
+    if (body.debug) {
+      return new Response(
+        JSON.stringify({ ok: true, hasKey: !!context.env.GEMINI_API_KEY, keyLen: (context.env.GEMINI_API_KEY || '').length }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     const destination = (body.destination || '').trim().slice(0, 100);
     const days = (body.days || '').trim().slice(0, 20);
     const style = (body.style || '').trim().slice(0, 60);
