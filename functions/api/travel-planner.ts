@@ -84,27 +84,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       category?: string;
       debug?: boolean;
     };
-    if (body.debug) {
-      // Minimal Gemini call
-      const key = context.env.GEMINI_API_KEY;
-      try {
-        const r = await fetch(`${GEN_BASE}/gemini-2.5-flash:generateContent?key=${key}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: 'Say hi in 3 words.' }] }] }),
-        });
-        const bodyText = await r.text();
-        return new Response(
-          JSON.stringify({ ok: true, hasKey: !!key, status: r.status, sample: bodyText.slice(0, 500) }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
-      } catch (e: any) {
-        return new Response(
-          JSON.stringify({ ok: false, err: e.message || String(e) }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-    }
     const destination = (body.destination || '').trim().slice(0, 100);
     const days = (body.days || '').trim().slice(0, 20);
     const style = (body.style || '').trim().slice(0, 60);
@@ -129,40 +108,55 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ? buildOverviewPrompt(destination, days, style)
       : buildCategoryPrompt(destination, category, style);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 55_000);
+    // 依序嘗試多個模型（2.5 被搶時降級到 2.0）
+    const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    let res: Response | null = null;
+    let lastErr = '';
+    let lastStatus = 0;
 
-    let res: Response;
-    try {
-      res = await fetch(
-        `${GEN_BASE}/gemini-2.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.5, maxOutputTokens: 4096 },
-          }),
-          signal: controller.signal,
-        }
-      );
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
-        return new Response(
-          JSON.stringify({ error: '規劃逾時，請稍候再試或縮短目的地範圍' }),
-          { status: 504, headers: { 'Content-Type': 'application/json' } }
+    for (const model of MODEL_CHAIN) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45_000);
+      try {
+        const r = await fetch(
+          `${GEN_BASE}/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.5, maxOutputTokens: 4096 },
+            }),
+            signal: controller.signal,
+          }
         );
+        clearTimeout(timeoutId);
+        if (r.ok) { res = r; break; }
+        lastStatus = r.status;
+        lastErr = await r.text();
+        console.error(`${model} error:`, r.status, lastErr.slice(0, 200));
+        // 503/429 才做 fallback；400 等永遠失敗錯誤不重試
+        if (![429, 500, 502, 503, 504].includes(r.status)) break;
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          lastErr = 'AbortError';
+          lastStatus = 504;
+          continue;
+        }
+        lastErr = err.message || String(err);
+        continue;
       }
-      throw err;
     }
-    clearTimeout(timeoutId);
 
-    if (!res.ok) {
-      const errBody = await res.text();
-      console.error('Gemini API error:', res.status, errBody.slice(0, 300));
+    if (!res) {
+      const msg = lastStatus === 503 || lastStatus === 429
+        ? 'AI 服務目前使用人數較多，請稍候 30 秒再試'
+        : lastStatus === 504
+        ? '規劃逾時，請稍候再試'
+        : `AI 服務回應異常 (${lastStatus})，請稍後重試`;
       return new Response(
-        JSON.stringify({ error: `AI 服務回應異常 (${res.status})，請稍後重試` }),
+        JSON.stringify({ error: msg }),
         { status: 502, headers: { 'Content-Type': 'application/json' } }
       );
     }
