@@ -96,25 +96,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       );
     }
 
-    if (body.debug) {
-      const key = context.env.GEMINI_API_KEY;
-      const results: any[] = [];
-      for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']) {
-        try {
-          const r = await fetch(`${GEN_BASE}/${model}:generateContent?key=${key}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }] }),
-          });
-          const t = await r.text();
-          results.push({ model, status: r.status, sample: t.slice(0, 200) });
-        } catch (e: any) {
-          results.push({ model, error: e.message || String(e) });
-        }
-      }
-      return new Response(JSON.stringify({ debug: results }, null, 2), {
-        status: 200, headers: { 'Content-Type': 'application/json' },
-      });
-    }
 
     const apiKey = context.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -129,7 +110,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       : buildCategoryPrompt(destination, category, style);
 
     // 依序嘗試多個模型（2.5 被搶時降級到 2.0）
-    const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-flash-latest'];
     let res: Response | null = null;
     let lastErr = '';
     let lastStatus = 0;
