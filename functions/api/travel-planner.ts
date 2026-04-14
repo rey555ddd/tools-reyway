@@ -119,8 +119,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            tools: [{ googleSearch: {} }], // 啟用 Google 搜尋 grounding，拿即時資訊
-            generationConfig: { temperature: 0.5, maxOutputTokens: 4096 },
+            generationConfig: { temperature: 0.5, maxOutputTokens: 4096, responseMimeType: 'application/json' },
           }),
           signal: controller.signal,
         }
