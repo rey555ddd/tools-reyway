@@ -1,5 +1,10 @@
 // CORS Middleware for tools.reyway.com
 // Cloudflare Pages Functions
+//
+// 🔒 2026-04-26：併入敏感路徑攔截（資安 audit P2 #7）
+// CF Pages 對「destination 不存在的路徑」會 ignore _redirects、
+// 直接走預設 fallback；改用 middleware 提早攔下回 404，避免
+// /.env、/.git/HEAD、/wrangler.toml 等檔案被探測。
 
 const allowedOrigins = [
   'https://tools.reyway.com',
@@ -7,6 +12,22 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5500',
   'http://127.0.0.1:5500',
+];
+
+const SENSITIVE_PATHS = [
+  /^\/\.env(\.|$)/,            // .env / .env.production / .env.local 等
+  /^\/\.git(\/|$)/,            // .git/HEAD / .git/config 等
+  /^\/\.dev\.vars$/,
+  /^\/\.npmrc$/,
+  /^\/\.prettierrc$/,
+  /^\/wrangler\.toml$/,
+  /^\/package(-lock)?\.json$/,
+  /^\/pnpm-lock\.yaml$/,
+  /^\/yarn\.lock$/,
+  /^\/tsconfig(\..*)?\.json$/,
+  /^\/vite\.config\.(ts|js)$/,
+  /^\/Dockerfile$/i,
+  /^\/docker-compose\..*$/i,
 ];
 
 function isAllowedOrigin(origin: string | null): boolean {
@@ -29,6 +50,16 @@ function corsHeaders(origin: string | null): Record<string, string> {
 }
 
 export const onRequest: PagesFunction = async (context) => {
+  const url = new URL(context.request.url);
+
+  // ── 🔒 攔截敏感路徑：直接回 404，不走任何 fallback ──
+  if (SENSITIVE_PATHS.some((re) => re.test(url.pathname))) {
+    return new Response('Not Found', {
+      status: 404,
+      headers: { 'Content-Type': 'text/plain', 'X-Robots-Tag': 'noindex' },
+    });
+  }
+
   const origin = context.request.headers.get('Origin');
 
   if (context.request.method === 'OPTIONS') {

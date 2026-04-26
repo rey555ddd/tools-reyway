@@ -1,0 +1,11 @@
+# 🔒 資安 headers（2026-04-26 全集團 audit）
+# Cloudflare Pages 會在每個回應自動套用這份 _headers
+# connect-src 允許：Gemini API、LINE Push API（站內 functions 用）
+
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.line.me https://*.fal.run https://queue.fal.run; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'
