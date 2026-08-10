@@ -1,4 +1,4 @@
-// CORS Middleware for tools.reyway.com
+// CORS Middleware for MIX Tools domains
 // Cloudflare Pages Functions
 //
 // 🔒 2026-04-26：併入敏感路徑攔截（資安 audit P2 #7）
@@ -7,6 +7,7 @@
 // /.env、/.git/HEAD、/wrangler.toml 等檔案被探測。
 
 const allowedOrigins = [
+  'https://mixtools.shengboss.tw',
   'https://tools.reyway.com',
   'https://tools-reyway.pages.dev',
   'http://localhost:3000',

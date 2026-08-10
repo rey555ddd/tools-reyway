@@ -1,9 +1,10 @@
-# 笙闆的 AI 工具箱 — tools.reyway.com
+# 笙闆的 AI 工具箱 — mixtools.shengboss.tw
 
 > 笙哥（陳睿笙）的個人 AI 工具站，歡迎親朋好友自由取用。
 > 
 > **GitHub Repo**: `rey555ddd/tools-reyway`  
-> **網址**: https://tools.reyway.com  
+> **主要網址**: https://mixtools.shengboss.tw
+> **Pages 備援網址**: https://tools-reyway.pages.dev
 > **Cloudflare Pages**: `tools-reyway` 專案（帳號 reysionchen@gmail.com）
 
 ---
@@ -90,6 +91,7 @@ git push origin main
 
 允許的 Origin：
 - `https://tools.reyway.com`
+- `https://mixtools.shengboss.tw`
 - `https://tools-reyway.pages.dev`
 - `http://localhost:3000`
 - `http://localhost:5500`
