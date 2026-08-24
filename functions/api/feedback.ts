@@ -9,6 +9,11 @@ interface Env {
   FEEDBACK_KV?: KVNamespace;
 }
 
+async function hash(value: string) {
+  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
+  return [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('').slice(0, 24);
+}
+
 async function pushToLine(env: Env, text: string): Promise<void> {
   const token = env.LINE_CHANNEL_ACCESS_TOKEN;
   const to = env.LINE_USER_ID;
@@ -81,22 +86,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       contact: (body.contact || '').slice(0, 200),
       ts: body.ts || new Date().toISOString(),
       ua: (body.ua || '').slice(0, 200),
-      ip: context.request.headers.get('cf-connecting-ip') || 'unknown',
+      ipHash: await hash(context.request.headers.get('cf-connecting-ip') || 'unknown'),
     };
-
-    // 印 log 備援（萬一 LINE/KV 失敗也有紀錄）
-    console.log('========== TOOLS-REYWAY FEEDBACK ==========');
-    console.log(JSON.stringify(cleaned, null, 2));
-    console.log('===========================================');
 
     // 寫進 KV（首頁許願池讀這裡）
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    console.log('feedback received', id, cleaned.type.length, cleaned.usage.length);
     if (context.env.FEEDBACK_KV) {
       try {
         await context.env.FEEDBACK_KV.put(
           `feedback:${id}`,
           JSON.stringify({ id, ...cleaned }),
-          { expirationTtl: 60 * 60 * 24 * 180 } // 180 天自動過期
+          { expirationTtl: 60 * 60 * 24 * 90 }
         );
       } catch (e) { console.error('KV write failed:', e); }
     }

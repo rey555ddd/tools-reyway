@@ -1,5 +1,5 @@
 // POST /api/feedback-delete
-// Body: { id, token }
+// Body: { id }, Header: Authorization: Bearer TOKEN
 // 須帶正確 admin token 才能刪除
 
 interface Env {
@@ -9,9 +9,9 @@ interface Env {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const body = await context.request.json() as { id?: string; token?: string };
+    const body = await context.request.json() as { id?: string };
     const id = (body.id || '').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 80);
-    const token = body.token || '';
+    const token = context.request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1] || '';
 
     if (!context.env.ADMIN_TOKEN || token !== context.env.ADMIN_TOKEN) {
       return new Response(JSON.stringify({ error: 'unauthorized' }), {
